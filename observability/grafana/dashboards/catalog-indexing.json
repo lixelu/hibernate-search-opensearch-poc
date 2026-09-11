@@ -1,0 +1,805 @@
+{
+  "uid": "catalog-indexing",
+  "title": "Catalog indexing and fan-out",
+  "description": "What each user change costs the indexing pipelines, and where a shared-parent fan-out shows up.",
+  "tags": [
+    "catalog",
+    "opensearch"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Indexing amplification \u2014 documents indexed per user change (5m)",
+      "description": "The fan-out, in one number: documents written to each index divided by the user-level changes that caused them, counted over five minutes. Ordinary product writes sit near 1. A change to a shared parent lifts it sharply \u2014 renaming a category with 3,079 products inside a window of ~100 other writes reads about 31. Counted with increase() over a window rather than rate(): a rate over a single event collapses the denominator and produces a meaningless ratio.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (pipeline) (increase(catalog_index_writes_total[5m])) / on() group_left() clamp_min(sum(increase(catalog_write_mutations_total[5m])), 1)",
+          "legendFormat": "{{pipeline}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "gradientMode": "opacity"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "User changes per second",
+      "description": "What the service was actually asked to do.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (operation) (rate(catalog_write_mutations_total[1m]))",
+          "legendFormat": "{{operation}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Documents indexed per second",
+      "description": "What that cost each pipeline. Read against the panel on its left.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 9,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (pipeline) (rate(catalog_index_writes_total[1m]))",
+          "legendFormat": "{{pipeline}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Queue rows written per second",
+      "description": "Amplification at the queue rather than the index. Hibernate Search writes one row per touched entity, the hand-rolled outbox one per aggregate.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 9,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (pipeline) (rate(catalog_outbox_events_written_total[1m]))",
+          "legendFormat": "{{pipeline}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Fan-out size per parent change",
+      "description": "How many documents a single parent change forced. This is a summary, not a sampled gauge, so it records the event whatever the scrape interval \u2014 unlike the backlog panel, where a burst that drains in a second can fall between two scrapes and never appear.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(catalog_write_fanout_bucket[5m])))",
+          "legendFormat": "p95",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "expr": "max_over_time(catalog_write_fanout_max[5m])",
+          "legendFormat": "largest",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Outbox backlog",
+      "description": "Where a fan-out lands. The write stays fast; this absorbs the burst. Note that a small fan-out can drain between scrapes and leave no trace here \u2014 trust the fan-out summary for the event, and this for sustained pressure.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "catalog_outbox_backlog",
+          "legendFormat": "{{pipeline}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Hibernate Search processor health",
+      "description": "Hibernate Search publishes no metrics of its own \u2014 no Micrometer classes in any of its jars, and no monitoring section in the 7.2 or 8.0 reference docs \u2014 so its processor is observed through the agent table it maintains. Each agent renews its lease every 2s (pulse_interval) for a 30s window (pulse_expiration), both measured. One RUNNING agent per instance is normal. An expired lease means a processor has been silent for over 30 seconds: its shard stays assigned, its share of the backlog stops draining, and nothing else in the system says why. Alert on it.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "catalog_hs_agents",
+          "legendFormat": "{{state}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "expr": "catalog_hs_agents_expired",
+          "legendFormat": "expired lease",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "stepAfter": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "expired lease"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Who resolved the fan-out",
+      "description": "Queue rows the application wrote by hand, against documents each pipeline actually indexed. The hand-rolled pipeline is keyed by product id and cannot discover a category change, so its fan-out is written explicitly as one INSERT \u2026 SELECT. Hibernate Search resolves its own from a single Category event, which is why no queue-row line appears for it and its indexing still rises.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 25,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (pipeline)(increase(catalog_outbox_events_written_total[1m]))",
+          "legendFormat": "queue rows written \u2014 {{pipeline}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "expr": "sum by (pipeline)(increase(catalog_index_writes_total[1m]))",
+          "legendFormat": "documents indexed \u2014 {{pipeline}}",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Index size on disk",
+      "description": "Hibernate Search 5 exposed this as Statistics.indexSizes(); 6+ removed it and never replaced it, so it is read from the cluster. Storage is one of the costs a search migration is judged on and the one that grows quietly.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "catalog_index_size_bytes",
+          "legendFormat": "{{pipeline}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "ORM cost of indexing \u2014 entities loaded per document written",
+      "description": "Hibernate Search builds each document by loading the entity graph through Hibernate ORM, and this is what that costs. Measured at 7.5 entity loads and 4.8 collection loads per document \u2014 which is why its mass indexer runs about 6x slower than a hand-written batched key lookup, and why it adds ~13 MySQL statements per write against ~2.9 for the outbox pipeline. Caveat: ORM statistics are global and cannot distinguish the event processor from ordinary application queries, so this ratio is only clean when indexing dominates \u2014 during a fan-out, for instance.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(hibernate_entities_loads_total[5m])) / on() group_left() clamp_min(sum(increase(catalog_index_writes_total{pipeline=\"hibernate-search\"}[5m])), 1)",
+          "legendFormat": "entity loads per document",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "expr": "sum(increase(hibernate_collections_loads_total[5m])) / on() group_left() clamp_min(sum(increase(catalog_index_writes_total{pipeline=\"hibernate-search\"}[5m])), 1)",
+          "legendFormat": "collection loads per document",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Indexing lag \u2014 how stale the index is",
+      "description": "The number to alert on. A fan-out shows here as a lag spike that decays as the relay works through the queue.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 49,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "catalog_outbox_lag_seconds",
+          "legendFormat": "{{pipeline}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Search latency p95 by engine",
+      "description": "The thing all of this was for.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 49,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, engine) (rate(catalog_search_engine_seconds_bucket[1m])))",
+          "legendFormat": "{{engine}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Abandoned indexing work",
+      "description": "The failure mode that has no other symptom. Hibernate Search retries a failed event twice and then marks it ABORTED (reference doc 19.3.8): nothing retries it again, nothing escalates, and the index is permanently wrong for those entities. Measured here: a 30-second OpenSearch outage abandoned all 1,740 events from one category rename. The red line is the backlog of abandoned work and should be flat at zero; any step up is a page. The failure rate is the leading indicator that arrives about 30 seconds earlier, and it exists only because a FailureHandler is configured -- the default writes an ERROR log and increments nothing. Recover with POST /api/admin/hs/aborted/reprocess once the cause is fixed.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 57,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "catalog_outbox_aborted{pipeline=\"hibernate-search\"}",
+          "legendFormat": "events abandoned",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "expr": "rate(catalog_hs_failures_entities_total[1m])",
+          "legendFormat": "entities failing/s",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "expr": "rate(catalog_hs_failures_total[1m])",
+          "legendFormat": "failures/s ({{kind}})",
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "events abandoned"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}

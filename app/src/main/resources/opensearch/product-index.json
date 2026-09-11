@@ -1,0 +1,59 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "1s",
+      "codec": "best_compression",
+      "max_result_window": 150000
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "_source": {
+      "excludes": ["description"]
+    },
+    "properties": {
+      "id": { "type": "long" },
+      "version": { "type": "long" },
+      "sku": { "type": "keyword" },
+      "name": {
+        "type": "text",
+        "norms": false,
+        "fields": { "raw": { "type": "keyword", "ignore_above": 256 } }
+      },
+      "description": { "type": "text", "norms": false, "index_options": "docs" },
+      "brand": { "type": "keyword" },
+      "status": { "type": "keyword" },
+      "currency": { "type": "keyword", "doc_values": false },
+      "ratingAvg": { "type": "float" },
+      "ratingCount": { "type": "integer" },
+      "launchDate": { "type": "date", "format": "yyyy-MM-dd" },
+      "createdAt": { "type": "date", "format": "strict_date_optional_time" },
+      "updatedAt": { "type": "date", "format": "strict_date_optional_time" },
+      "vendor": {
+        "properties": {
+          "id": { "type": "long" },
+          "name": { "type": "keyword", "index": false, "doc_values": false },
+          "country": { "type": "keyword" },
+          "tier": { "type": "keyword" },
+          "rating": { "type": "float" }
+        }
+      },
+      "category": {
+        "properties": {
+          "id": { "type": "long" },
+          "name": { "type": "keyword", "index": false, "doc_values": false },
+          "path": { "type": "keyword" }
+        }
+      },
+      "tags": { "type": "keyword" },
+      "attrFlat": { "type": "keyword" },
+      "priceMinMinor": { "type": "long" },
+      "priceMaxMinor": { "type": "long" },
+      "inStockRegions": { "type": "keyword" },
+      "totalStock": { "type": "integer" },
+      "variantCount": { "type": "integer" }
+    }
+  }
+}

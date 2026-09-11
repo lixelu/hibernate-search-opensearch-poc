@@ -1,0 +1,500 @@
+<title>Catalog Service Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:       #f4f6f4;
+    --surface:      #ffffff;
+    --surface-sunk: #e9ece9;
+    --ink:          #171c19;
+    --ink-2:        #3a433d;
+    --muted:        #5d6660;
+    --rule:         #dbe0db;
+    --rule-strong:  #bcc4bd;
+
+    --write:        #9a5b13;   /* the path you must not disturb */
+    --write-wash:   #f7efe4;
+    --read:         #0b6a80;   /* the path being made fast */
+    --read-wash:    #e5f0f3;
+    --shared:       #5a4b8a;   /* used by both */
+    --shared-wash:  #eeebf5;
+
+    --f-display: "Chivo", "Helvetica Neue", Arial, sans-serif;
+    --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --s--1: 0.8125rem;
+    --s-0:  1rem;
+    --s-1:  1.2rem;
+    --s-2:  1.55rem;
+    --s-3:  2.1rem;
+    --s-4:  2.9rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:       #11150f;
+      --surface:      #191e19;
+      --surface-sunk: #0d110c;
+      --ink:          #e0e6e0;
+      --ink-2:        #bac2bb;
+      --muted:        #8d968f;
+      --rule:         #2c332d;
+      --rule-strong:  #414a42;
+      --write:        #e09a4e;
+      --write-wash:   #2b2013;
+      --read:         #4fb8d0;
+      --read-wash:    #10262c;
+      --shared:       #a596d8;
+      --shared-wash:  #221d33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:       #11150f;
+    --surface:      #191e19;
+    --surface-sunk: #0d110c;
+    --ink:          #e0e6e0;
+    --ink-2:        #bac2bb;
+    --muted:        #8d968f;
+    --rule:         #2c332d;
+    --rule-strong:  #414a42;
+    --write:        #e09a4e;
+    --write-wash:   #2b2013;
+    --read:         #4fb8d0;
+    --read-wash:    #10262c;
+    --shared:       #a596d8;
+    --shared-wash:  #221d33;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: var(--s-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.15; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(2rem, 5vw, var(--s-4)); letter-spacing: -0.032em; }
+  h2 { font-size: var(--s-2); letter-spacing: -0.02em; }
+  h3 { font-size: var(--s-1); letter-spacing: -0.012em; font-weight: 600; }
+  p { margin: 0; }
+  code, .mono { font-family: var(--f-mono); font-size: 0.88em; }
+
+  .shell { max-width: 1180px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 40px) 90px; }
+
+  header { padding: clamp(44px, 7vw, 76px) 0 34px; }
+  .eyebrow {
+    font-family: var(--f-mono); font-size: var(--s--1); font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  }
+  .lede { margin-top: 18px; max-width: 62ch; font-size: var(--s-1); color: var(--ink-2); line-height: 1.5; }
+
+  .key { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 26px; }
+  .key span { display: inline-flex; align-items: center; gap: 8px; font-size: var(--s--1); color: var(--ink-2); }
+  .key i { width: 22px; height: 3px; border-radius: 2px; display: inline-block; }
+
+  figure { margin: 0; }
+  .figure-frame {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 5px;
+    padding: 20px clamp(12px, 2vw, 22px) 14px; overflow-x: auto;
+  }
+  .figure-frame svg { min-width: 900px; max-width: 100%; height: auto; display: block; color: var(--ink); }
+  figcaption { margin-top: 12px; font-size: var(--s--1); color: var(--muted); max-width: 78ch; }
+
+  section { padding-top: 54px; }
+  .sec-head { border-top: 2px solid var(--ink); padding-top: 13px; display: flex; flex-wrap: wrap;
+              gap: 6px 14px; align-items: baseline; }
+  .sec-head .tag { font-family: var(--f-mono); font-size: var(--s--1); font-weight: 600; letter-spacing: 0.1em;
+                   text-transform: uppercase; }
+  .sec-head .tag.w { color: var(--write); }
+  .sec-head .tag.r { color: var(--read); }
+  .sec-head .tag.s { color: var(--shared); }
+  .intro { margin-top: 16px; max-width: 68ch; color: var(--ink-2); }
+
+  /* ---- step lists: the paths really are sequences ------------------------- */
+  ol.steps { list-style: none; margin: 22px 0 0; padding: 0;
+             display: flex; flex-direction: column; gap: 1px;
+             background: var(--rule); border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+  ol.steps li { background: var(--surface); display: grid; grid-template-columns: 2.1em 1fr; gap: 14px;
+                padding: 14px 18px; }
+  @media (min-width: 820px) { ol.steps li { grid-template-columns: 2.1em 20em 1fr; } }
+  ol.steps .n { font-family: var(--f-mono); font-size: var(--s--1); font-weight: 600; color: var(--rule-strong);
+                padding-top: 2px; }
+  ol.steps .who { font-family: var(--f-mono); font-size: var(--s--1); font-weight: 500; line-height: 1.5;
+                  word-break: break-word; }
+  ol.steps .who b { font-weight: 600; display: block; }
+  ol.steps .who em { font-style: normal; color: var(--muted); display: block; font-family: var(--f-body); }
+  ol.steps .what { font-size: var(--s--1); color: var(--ink-2); line-height: 1.55; }
+  ol.steps.w .who b { color: var(--write); }
+  ol.steps.r .who b { color: var(--read); }
+
+  .lanes { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 22px; }
+  @media (min-width: 820px) { .lanes { grid-template-columns: 1fr 1fr; } }
+  .lane { background: var(--surface); border: 1px solid var(--rule); border-radius: 5px; padding: 18px 20px 20px; }
+  .lane h3 { margin-bottom: 4px; }
+  .lane .owner { font-family: var(--f-mono); font-size: var(--s--1); color: var(--muted); }
+  .lane ul { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .lane li { font-size: var(--s--1); line-height: 1.5; padding-left: 15px; position: relative; color: var(--ink-2); }
+  .lane li::before { content: ""; position: absolute; left: 0; top: 0.58em; width: 6px; height: 6px;
+                     border-radius: 1px; background: var(--rule-strong); }
+  .lane li .mono { color: var(--ink); font-weight: 500; }
+
+  .note { border-left: 3px solid var(--shared); background: var(--shared-wash);
+          padding: 16px 20px; border-radius: 0 5px 5px 0; margin-top: 22px; }
+  .note h3 { margin-bottom: 8px; }
+  .note p + p { margin-top: 10px; }
+  .note p { font-size: var(--s--1); color: var(--ink-2); line-height: 1.6; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 5px;
+                background: var(--surface); margin-top: 22px; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--s--1); }
+  th, td { text-align: left; padding: 9px 15px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { font-family: var(--f-display); font-weight: 600; font-size: var(--s--1); letter-spacing: 0.07em;
+             text-transform: uppercase; color: var(--muted); background: var(--surface-sunk);
+             border-bottom: 1px solid var(--rule-strong); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.pkg { font-family: var(--f-mono); color: var(--muted); white-space: nowrap; }
+  td.cls { font-family: var(--f-mono); font-weight: 500; white-space: nowrap; }
+  td.path { white-space: nowrap; font-family: var(--f-mono); font-size: 0.92em; }
+  .p-w { color: var(--write); }
+  .p-r { color: var(--read); }
+  .p-b { color: var(--shared); }
+
+  footer { margin-top: 68px; padding-top: 22px; border-top: 1px solid var(--rule);
+           font-size: var(--s--1); color: var(--muted); max-width: 72ch; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="shell">
+
+  <header>
+    <div class="eyebrow">catalog-data-service · com.acme.catalog</div>
+    <h1>Which class does what</h1>
+    <p class="lede">
+      A write touches three stores in one transaction and never speaks to OpenSearch. A read
+      picks one of three engines, gets back ids, and hydrates the page from MySQL. One loader
+      class sits on both paths — which is the part worth knowing.
+    </p>
+    <div class="key">
+      <span><i style="background: var(--write);"></i>write path</span>
+      <span><i style="background: var(--read);"></i>read path</span>
+      <span><i style="background: var(--shared);"></i>on both paths</span>
+    </div>
+  </header>
+
+  <figure>
+    <div class="figure-frame">
+      <svg viewBox="0 0 1120 700" role="img"
+           aria-label="A write goes from ProductWriteController through ProductWriteService, which in one transaction writes the product tables, an outbox_event row and Hibernate Search's hsearch_outbox_event rows. Two independent pipelines drain those outboxes into two OpenSearch indices. A read goes from ProductQueryController through ProductReadService and ProductSearchRouter to one of three adapters, which return ids, and ProductAggregateLoader then hydrates the page from MySQL. The same loader is used by the hand-rolled indexing pipeline to build its projection.">
+        <defs>
+          <marker id="ar" viewBox="0 0 9 9" refX="8" refY="4.5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L9 4.5 L0 9 z" fill="currentColor"/>
+          </marker>
+          <marker id="arW" viewBox="0 0 9 9" refX="8" refY="4.5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L9 4.5 L0 9 z" fill="var(--write)"/>
+          </marker>
+          <marker id="arR" viewBox="0 0 9 9" refX="8" refY="4.5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L9 4.5 L0 9 z" fill="var(--read)"/>
+          </marker>
+          <marker id="arS" viewBox="0 0 9 9" refX="8" refY="4.5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L9 4.5 L0 9 z" fill="var(--shared)"/>
+          </marker>
+        </defs>
+
+        <!-- ============ WRITE ============ -->
+        <text x="0" y="16" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600"
+              letter-spacing="1.6" fill="var(--write)">WRITE</text>
+
+        <rect x="0" y="30" width="196" height="50" rx="4" fill="var(--write-wash)" stroke="var(--write)" stroke-width="1.2"/>
+        <text x="14" y="52" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">ProductWrite</text>
+        <text x="14" y="68" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">Controller</text>
+
+        <line x1="196" y1="55" x2="252" y2="55" stroke="var(--write)" stroke-width="1.6" marker-end="url(#arW)"/>
+
+        <rect x="252" y="22" width="212" height="66" rx="4" fill="var(--write-wash)" stroke="var(--write)" stroke-width="1.2"/>
+        <text x="266" y="43" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">ProductWriteService</text>
+        <text x="266" y="59" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">@Transactional</text>
+        <text x="266" y="74" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">bumpVersion() + outbox</text>
+
+        <!-- three fan-out arrows, one per store -->
+        <path d="M464 40 H540" fill="none" stroke="var(--write)" stroke-width="1.6" marker-end="url(#arW)"/>
+        <path d="M358 88 V126 H540" fill="none" stroke="var(--write)" stroke-width="1.6" marker-end="url(#arW)"/>
+        <path d="M358 88 V208 H540" fill="none" stroke="var(--write)" stroke-width="1.6" marker-end="url(#arW)"/>
+
+        <rect x="540" y="18" width="216" height="46" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="554" y="37" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">product · variant</text>
+        <text x="554" y="53" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">inventory · attrs</text>
+        <text x="766" y="44" font-family="IBM Plex Sans, sans-serif" font-size="10.5" fill="var(--muted)">JPA repos + entities</text>
+
+        <rect x="540" y="104" width="216" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="554" y="123" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">outbox_event</text>
+        <text x="554" y="139" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">1 row per aggregate</text>
+        <text x="766" y="127" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">OutboxRecorder</text>
+
+        <rect x="540" y="186" width="216" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="554" y="205" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">hsearch_outbox_event</text>
+        <text x="554" y="221" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">3 rows per touched entity</text>
+        <text x="766" y="209" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">library listener</text>
+
+        <!-- ============ INDEXING ============ -->
+        <text x="880" y="16" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600"
+              letter-spacing="1.6" fill="var(--muted)">INDEXING</text>
+
+        <line x1="756" y1="126" x2="880" y2="126" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>
+        <text x="790" y="118" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">poll 200ms</text>
+
+        <rect x="880" y="96" width="240" height="62" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="894" y="115" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">OutboxRelay</text>
+        <text x="894" y="131" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">ProjectionAssembler</text>
+        <text x="894" y="147" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">ProductIndexer · bulk</text>
+
+        <line x1="756" y1="208" x2="880" y2="208" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>
+        <text x="782" y="200" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">outbox-polling</text>
+
+        <rect x="880" y="178" width="240" height="62" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="894" y="197" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">HS event processor</text>
+        <text x="894" y="213" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">Product derived getters</text>
+        <text x="894" y="229" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">@IndexingDependency</text>
+
+        <!-- indices -->
+        <rect x="880" y="280" width="240" height="42" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-width="1.2"/>
+        <text x="894" y="306" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">products_read</text>
+        <rect x="880" y="336" width="240" height="42" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-width="1.2"/>
+        <text x="894" y="362" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="currentColor">hs-products-read</text>
+
+        <line x1="1000" y1="158" x2="1000" y2="280" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>
+        <text x="1008" y="215" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">external_gte</text>
+        <line x1="940" y1="240" x2="940" y2="336" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>
+
+
+        <!-- ============ READ ============ -->
+        <text x="0" y="410" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600"
+              letter-spacing="1.6" fill="var(--read)">READ</text>
+
+        <rect x="0" y="424" width="196" height="50" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-width="1.2"/>
+        <text x="14" y="446" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">ProductQuery</text>
+        <text x="14" y="462" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">Controller</text>
+
+        <line x1="196" y1="449" x2="252" y2="449" stroke="var(--read)" stroke-width="1.6" marker-end="url(#arR)"/>
+        <text x="200" y="441" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--muted)">ProductQuery</text>
+
+        <rect x="252" y="424" width="196" height="50" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-width="1.2"/>
+        <text x="266" y="446" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">ProductRead</text>
+        <text x="266" y="462" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">Service</text>
+
+        <line x1="448" y1="449" x2="504" y2="449" stroke="var(--read)" stroke-width="1.6" marker-end="url(#arR)"/>
+
+        <rect x="504" y="418" width="212" height="62" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-width="1.2"/>
+        <text x="518" y="438" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">ProductSearchRouter</text>
+        <text x="518" y="454" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">engine switch · shadow</text>
+        <text x="518" y="469" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">fallback to MySQL</text>
+
+        <!-- three adapters -->
+        <rect x="768" y="396" width="216" height="38" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="782" y="420" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="currentColor">MySqlProductSearchAdapter</text>
+        <rect x="768" y="442" width="216" height="38" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="782" y="466" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="currentColor">OpenSearch…Adapter</text>
+        <rect x="768" y="488" width="216" height="38" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.2"/>
+        <text x="782" y="512" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="currentColor">HibernateSearch…Adapter</text>
+
+        <path d="M716 440 H744 V415 H768" fill="none" stroke="var(--read)" stroke-width="1.5" marker-end="url(#arR)"/>
+        <path d="M716 449 H744 V461 H768" fill="none" stroke="var(--read)" stroke-width="1.5" marker-end="url(#arR)"/>
+        <path d="M716 458 H744 V507 H768" fill="none" stroke="var(--read)" stroke-width="1.5" marker-end="url(#arR)"/>
+        <text x="722" y="392" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">one of three</text>
+
+        <!-- each adapter reaches its own store in one hop -->
+        <path d="M984 455 H1016 V322" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" marker-end="url(#ar)"/>
+        <path d="M984 507 H1064 V378" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" marker-end="url(#ar)"/>
+        <text x="992" y="404" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">joins MySQL</text>
+        <text x="992" y="417" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">the slow baseline</text>
+
+        <!-- ids back, then hydrate -->
+        <path d="M876 526 V566 H700" fill="none" stroke="var(--read)" stroke-width="1.6" marker-end="url(#arR)"/>
+        <text x="716" y="558" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--read)">SearchSlice · ids + total</text>
+
+        <rect x="484" y="542" width="216" height="50" rx="4" fill="var(--shared-wash)" stroke="var(--shared)" stroke-width="1.4"/>
+        <text x="498" y="563" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">ProductAggregate</text>
+        <text x="498" y="579" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">Loader</text>
+
+        <path d="M500 542 V80 H556 V68" fill="none" stroke="var(--shared)" stroke-width="1.5" marker-end="url(#arS)"/>
+        <text x="330" y="356" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--shared)">hydrate by primary key</text>
+        <text x="330" y="369" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--shared)">5 batched queries</text>
+
+        <path d="M592 500 V536" fill="none" stroke="var(--shared)" stroke-width="1.5"
+              stroke-dasharray="5 4" marker-end="url(#arS)"/>
+        <text x="602" y="498" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--shared)">also called by OutboxRelay</text>
+
+        <path d="M484 567 H340" fill="none" stroke="var(--read)" stroke-width="1.6" marker-end="url(#arR)"/>
+        <rect x="124" y="544" width="216" height="46" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-width="1.2"/>
+        <text x="138" y="564" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor">PageResponse</text>
+        <text x="138" y="580" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">items · engine · timings</text>
+
+        <path d="M124 567 H60 V474" fill="none" stroke="var(--read)" stroke-width="1.6" marker-end="url(#arR)"/>
+
+        <!-- the one thing the write path never does -->
+        <text x="0" y="640" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)">
+          No arrow runs from the write path to an index. That absence is the design:
+        </text>
+        <text x="0" y="657" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)">
+          a search outage cannot fail a POST, because the write never waited on one.
+        </text>
+      </svg>
+    </div>
+    <figcaption>
+      One transaction writes three things; two independent pipelines drain the two outboxes into
+      two indices; a read picks an engine, gets ids back, and hydrates from MySQL. The dashed
+      violet line is the same <code>ProductAggregateLoader</code> serving both the projection
+      builder and the read path.
+    </figcaption>
+  </figure>
+
+  <section>
+    <div class="sec-head"><span class="tag w">Write path</span><h2>One transaction, three stores</h2></div>
+    <p class="intro">
+      Everything below happens inside the transaction the service already opened. Nothing here
+      knows OpenSearch exists.
+    </p>
+    <ol class="steps w">
+      <li><span class="n">01</span>
+        <span class="who"><b>ProductWriteController</b><em>api</em></span>
+        <span class="what">POST, PUT and DELETE on <code>/api/v1/products</code>. Binds the request records in <code>WriteRequests</code> and delegates. No logic.</span></li>
+      <li><span class="n">02</span>
+        <span class="who"><b>ProductWriteService</b><em>write</em></span>
+        <span class="what">The only <code>@Transactional</code> boundary on this path. Loads through the repositories, mutates the entities, then ends every method with the same two lines: <code>product.bumpVersion()</code> and <code>outbox.productChanged(id)</code>.</span></li>
+      <li><span class="n">03</span>
+        <span class="who"><b>ProductRepository</b><br><b>VendorRepository</b><br><b>CategoryRepository</b><em>repo</em></span>
+        <span class="what">Plain Spring Data JPA. The entities they load — <code>Product</code>, <code>ProductVariant</code>, <code>Inventory</code>, <code>Vendor</code>, <code>Category</code> — carry both the write model and the Hibernate Search mapping.</span></li>
+      <li><span class="n">04</span>
+        <span class="who"><b>OutboxRecorder</b><br><b>OutboxStore</b><em>outbox</em></span>
+        <span class="what">One narrow INSERT into <code>outbox_event</code>, keyed by aggregate id, no payload. <code>record()</code> is <code>propagation = MANDATORY</code>, so calling it outside a transaction fails loudly instead of quietly reintroducing a dual write.</span></li>
+      <li><span class="n">05</span>
+        <span class="who"><b>Hibernate Search listener</b><em>library, no code of ours</em></span>
+        <span class="what">Writes its own rows to <code>hsearch_outbox_event</code> on the same flush — one per touched entity instance, so a product with variants and stock produces several.</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="tag">Indexing</span><h2>Two pipelines, drained independently</h2></div>
+    <p class="intro">
+      Both consume an outbox and both end at an alias. They share no code, which is what makes
+      them comparable on identical traffic.
+    </p>
+    <div class="lanes">
+      <div class="lane">
+        <h3>Hand-rolled</h3>
+        <div class="owner">outbox · read · projection · indexer</div>
+        <ul>
+          <li><span class="mono">OutboxRelay</span> — <code>@Scheduled</code> every 200 ms. Claims a batch with <code>FOR UPDATE … SKIP LOCKED</code>, so every instance can poll without a leader election.</li>
+          <li><span class="mono">ProductAggregateLoader</span> — five batched key lookups turn N ids into N aggregates.</li>
+          <li><span class="mono">ProductProjectionAssembler</span> — pure function, aggregate to <span class="mono">ProductDocument</span>. Unit-testable without a cluster.</li>
+          <li><span class="mono">ProductIndexer</span> — one bulk request with <code>external_gte</code> versioning, so a stale or replayed write is a counted no-op rather than a regression.</li>
+          <li><span class="mono">IndexAdmin</span>, <span class="mono">ReindexService</span> — versioned indices behind aliases; a rebuild is an alias move.</li>
+        </ul>
+      </div>
+      <div class="lane">
+        <h3>Hibernate Search</h3>
+        <div class="owner">domain · query.hibernatesearch</div>
+        <ul>
+          <li><span class="mono">Product</span> — the mapping lives on the entity. <code>@Indexed</code>, <code>@FullTextField</code>, <code>@KeywordField</code>, and the derived <code>@Transient</code> getters for price, stock regions and flattened attributes.</li>
+          <li><span class="mono">@IndexingDependency</span> — declares which persistent properties each derived value reads. This is what reindexes a product when a variant's price changes three tables away.</li>
+          <li>The event processor, the projection step and the bulk write are all <b>library code</b>. There is no relay, assembler or indexer of ours on this lane.</li>
+          <li><span class="mono">HibernateSearchAdmin</span> — the only class we own here: mass index, backlog, aborted events.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="tag r">Read path</span><h2>Pick an engine, get ids, hydrate</h2></div>
+    <ol class="steps r">
+      <li><span class="n">01</span>
+        <span class="who"><b>ProductQueryController</b><em>api</em></span>
+        <span class="what">Binds the query string into one <span class="mono">ProductQuery</span> record — the engine-independent description of a complex GET. Caps the page size and parses repeated <code>attr=key:value</code> pairs.</span></li>
+      <li><span class="n">02</span>
+        <span class="who"><b>ProductReadService</b><em>read</em></span>
+        <span class="what">Asks for a few more ids than the page needs, hydrates, trims back, and reports how many ids the index named that MySQL no longer had. Widens and retries if the page still came up short.</span></li>
+      <li><span class="n">03</span>
+        <span class="who"><b>ProductSearchRouter</b><em>query</em></span>
+        <span class="what">The migration switch: <code>MYSQL</code>, <code>SHADOW</code>, <code>OPENSEARCH</code> or <code>HIBERNATE_SEARCH</code>, overridable per request. Falls back to MySQL on error, and deliberately does not fall back on a deep-paging rejection.</span></li>
+      <li><span class="n">04</span>
+        <span class="who"><b>MySqlProductSearchAdapter</b><br><b>OpenSearchProductSearchAdapter</b><br><b>HibernateSearchProductAdapter</b><em>query.mysql · .opensearch · .hibernatesearch</em></span>
+        <span class="what">Three implementations of <span class="mono">ProductSearchPort</span>, all returning the same <span class="mono">SearchSlice</span> of ordered ids. The OpenSearch one delegates clause building to <span class="mono">ProductQueryTranslator</span>.</span></li>
+      <li><span class="n">05</span>
+        <span class="who"><b>ProductAggregateLoader</b><em>read</em></span>
+        <span class="what">Hydrates the page by primary key. Cost is proportional to the page, not the result set — twenty ids, five batched queries.</span></li>
+      <li><span class="n">06</span>
+        <span class="who"><b>PageResponse</b><em>api.dto</em></span>
+        <span class="what">Carries which engine answered and where the milliseconds went, so a migration is observable from the response itself.</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="tag s">On both paths</span><h2>The shared spine</h2></div>
+    <div class="note">
+      <h3>ProductAggregateLoader is used twice, on purpose</h3>
+      <p>
+        The indexing pipeline calls it to build the document. The read path calls it to hydrate
+        the page. One loader, two consumers — so the shape of an aggregate is defined in exactly
+        one place, and a projection cannot quietly disagree with a response.
+      </p>
+      <p>
+        Three more types cross both paths for the same reason: <code>ProductQuery</code> and
+        <code>SearchSlice</code> are what let three adapters be interchangeable, and
+        <code>MinorUnits</code> is the single definition of money-as-an-integer that both the
+        hand-rolled projection and the entity's derived getters call — because a currency amount
+        must never be indexed as a floating-point value.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="tag">Reference</span><h2>Every class, by package</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Package</th><th>Class</th><th>Path</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td class="pkg">api</td><td class="cls">ProductWriteController</td><td class="path p-w">write</td><td>POST / PUT / DELETE endpoints</td></tr>
+          <tr><td class="pkg">api</td><td class="cls">ProductQueryController</td><td class="path p-r">read</td><td>The complex GET, plus point lookup by id</td></tr>
+          <tr><td class="pkg">api</td><td class="cls">AdminController</td><td class="path">ops</td><td>Seed, drain, reindex, reconcile, benchmark, mass index</td></tr>
+          <tr><td class="pkg">api</td><td class="cls">ApiExceptionHandler</td><td class="path p-r">read</td><td>Turns a deep-paging rejection into a 400, not a 500</td></tr>
+          <tr><td class="pkg">api.dto</td><td class="cls">WriteRequests</td><td class="path p-w">write</td><td>Request records</td></tr>
+          <tr><td class="pkg">api.dto</td><td class="cls">PageResponse</td><td class="path p-r">read</td><td>Items, total, engine, timings, stale-dropped count</td></tr>
+          <tr><td class="pkg">write</td><td class="cls">ProductWriteService</td><td class="path p-w">write</td><td>The transaction boundary; bumps version, records outbox</td></tr>
+          <tr><td class="pkg">repo</td><td class="cls">Product/Vendor/CategoryRepository</td><td class="path p-w">write</td><td>Spring Data JPA</td></tr>
+          <tr><td class="pkg">domain</td><td class="cls">Product</td><td class="path p-b">both</td><td>Aggregate root; also carries the Hibernate Search mapping and derived fields</td></tr>
+          <tr><td class="pkg">domain</td><td class="cls">ProductVariant · Inventory · Vendor · Category</td><td class="path p-b">both</td><td>The rest of the aggregate</td></tr>
+          <tr><td class="pkg">outbox</td><td class="cls">OutboxRecorder</td><td class="path p-w">write</td><td>The one line the write path adds</td></tr>
+          <tr><td class="pkg">outbox</td><td class="cls">OutboxStore</td><td class="path p-w">write</td><td>Insert, claim with SKIP LOCKED, complete, release</td></tr>
+          <tr><td class="pkg">outbox</td><td class="cls">OutboxRelay</td><td class="path">index</td><td>claim → load → index → acknowledge</td></tr>
+          <tr><td class="pkg">read</td><td class="cls">ProductAggregateLoader</td><td class="path p-b">both</td><td>Five batched key lookups; feeds hydration and projection</td></tr>
+          <tr><td class="pkg">read</td><td class="cls">ProductAggregate</td><td class="path p-b">both</td><td>The loaded aggregate</td></tr>
+          <tr><td class="pkg">read</td><td class="cls">ProductReadService</td><td class="path p-r">read</td><td>Search, hydrate, surplus and refill</td></tr>
+          <tr><td class="pkg">projection</td><td class="cls">ProductProjectionAssembler</td><td class="path">index</td><td>Aggregate to document, pure function</td></tr>
+          <tr><td class="pkg">projection</td><td class="cls">ProductDocument</td><td class="path">index</td><td>The flat read model as OpenSearch stores it</td></tr>
+          <tr><td class="pkg">indexer</td><td class="cls">ProductIndexer</td><td class="path">index</td><td>Bulk writes with external versioning</td></tr>
+          <tr><td class="pkg">indexer</td><td class="cls">IndexAdmin</td><td class="path">index</td><td>Create index, move aliases, counts</td></tr>
+          <tr><td class="pkg">indexer</td><td class="cls">ReindexService</td><td class="path">index</td><td>Zero-downtime rebuild and replay</td></tr>
+          <tr><td class="pkg">query</td><td class="cls">ProductQuery · SearchSlice · ProductSearchPort</td><td class="path p-r">read</td><td>The seam that makes three engines interchangeable</td></tr>
+          <tr><td class="pkg">query</td><td class="cls">ProductSearchRouter</td><td class="path p-r">read</td><td>Engine switch, shadow comparison, fallback</td></tr>
+          <tr><td class="pkg">query.mysql</td><td class="cls">MySqlProductSearchAdapter</td><td class="path p-r">read</td><td>The join-heavy baseline, kept as fallback</td></tr>
+          <tr><td class="pkg">query.opensearch</td><td class="cls">OpenSearchProductSearchAdapter</td><td class="path p-r">read</td><td>Hand-rolled index, ids only</td></tr>
+          <tr><td class="pkg">query.opensearch</td><td class="cls">ProductQueryTranslator</td><td class="path p-r">read</td><td>ProductQuery to OpenSearch DSL</td></tr>
+          <tr><td class="pkg">query.hibernatesearch</td><td class="cls">HibernateSearchProductAdapter</td><td class="path p-r">read</td><td>Same query, Hibernate Search DSL</td></tr>
+          <tr><td class="pkg">query.hibernatesearch</td><td class="cls">HibernateSearchAdmin</td><td class="path">ops</td><td>Mass index, backlog, aborted events</td></tr>
+          <tr><td class="pkg">common</td><td class="cls">MinorUnits</td><td class="path p-b">both</td><td>Money as an exact integer, for both pipelines</td></tr>
+          <tr><td class="pkg">ops</td><td class="cls">CatalogMetrics</td><td class="path">ops</td><td>Every gauge, in one catalogue</td></tr>
+          <tr><td class="pkg">ops</td><td class="cls">SearchHealthIndicator</td><td class="path">ops</td><td>DEGRADED, never DOWN — readiness must not follow the cluster</td></tr>
+          <tr><td class="pkg">ops</td><td class="cls">ReconciliationService · BenchmarkService</td><td class="path">ops</td><td>Drift detection and the three-engine comparison</td></tr>
+          <tr><td class="pkg">config</td><td class="cls">SearchProperties · IndexingProperties</td><td class="path p-b">both</td><td>Engine, fallback, surplus, batch sizes, kill switches</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Drawn from the code as it stands: 48 classes in <code>com.acme.catalog</code>, 4,326 lines of
+    main source. The dependency edges shown were read out of the constructors, not from memory.
+  </footer>
+</div>

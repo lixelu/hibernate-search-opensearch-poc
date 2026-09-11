@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s      # tight, because a fan-out is a spike and a 15s interval hides it
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: catalog
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # host.docker.internal reaches the service when it runs on the host (make run).
+      # Swap for 'app:8080' when running the service in compose (--profile app).
+      - targets: ['host.docker.internal:8080']
+        labels:
+          service: catalog-data-service

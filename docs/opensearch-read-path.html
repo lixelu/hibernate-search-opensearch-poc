@@ -1,0 +1,835 @@
+<title>OpenSearch Read Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --ground:      #f4f5f7;
+    --surface:     #ffffff;
+    --surface-sunk:#eceef1;
+    --ink:         #141a21;
+    --ink-2:       #3b4652;
+    --muted:       #5b6672;
+    --rule:        #dfe3e8;
+    --rule-strong: #c3cad2;
+    --accent:      #0268a7;   /* proposed path — validated series 2 */
+    --baseline:    #a8501c;   /* current path — validated series 1 */
+    --risk:        #a02334;
+    --accent-wash: #e8f1f8;
+    --baseline-wash:#f8eee7;
+    --risk-wash:   #f9ebed;
+
+    --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --f-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --measure: 66ch;
+    --step--1: 0.815rem;
+    --step-0:  1.0625rem;
+    --step-1:  1.28rem;
+    --step-2:  1.6rem;
+    --step-3:  2.1rem;
+    --step-4:  3rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #12161b;
+      --surface:     #191e24;
+      --surface-sunk:#10141a;
+      --ink:         #dde3ea;
+      --ink-2:       #b6c0cb;
+      --muted:       #8e9aa8;
+      --rule:        #2a323b;
+      --rule-strong: #3d4854;
+      --accent:      #0893d0;
+      --baseline:    #cc7433;
+      --risk:        #e2707e;
+      --accent-wash: #10222e;
+      --baseline-wash:#2a1d12;
+      --risk-wash:   #2b161a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #12161b;
+    --surface:     #191e24;
+    --surface-sunk:#10141a;
+    --ink:         #dde3ea;
+    --ink-2:       #b6c0cb;
+    --muted:       #8e9aa8;
+    --rule:        #2a323b;
+    --rule-strong: #3d4854;
+    --accent:      #0893d0;
+    --baseline:    #cc7433;
+    --risk:        #e2707e;
+    --accent-wash: #10222e;
+    --baseline-wash:#2a1d12;
+    --risk-wash:   #2b161a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: var(--step-0);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent); color: var(--surface); }
+  a { color: var(--accent); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:focus-visible, .bar-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+  h1, h2, h3, h4 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; line-height: 1.15; margin: 0; }
+  h2 { font-size: var(--step-2); letter-spacing: -0.018em; }
+  h3 { font-size: var(--step-1); letter-spacing: -0.012em; }
+  h4 { font-size: var(--step-0); letter-spacing: -0.005em; }
+  p { margin: 0; }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--f-mono); font-size: 0.86em; font-variant-numeric: tabular-nums; }
+  code { background: var(--surface-sunk); padding: 0.08em 0.34em; border-radius: 3px; }
+
+  .eyebrow {
+    font-family: var(--f-display); font-size: var(--step--1); font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted);
+  }
+
+  /* ---- shell ------------------------------------------------------------- */
+  .shell { max-width: 1180px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 44px) 96px; }
+  .layout { display: grid; grid-template-columns: 1fr; gap: 40px; }
+  @media (min-width: 1000px) {
+    .layout { grid-template-columns: 196px minmax(0, 1fr); gap: 56px; align-items: start; }
+  }
+
+  /* ---- masthead ---------------------------------------------------------- */
+  .masthead { padding: clamp(48px, 8vw, 88px) 0 40px; }
+  .masthead .kicker { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: baseline; margin-bottom: 22px; }
+  .status-pill {
+    font-family: var(--f-display); font-size: var(--step--1); font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-wash);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    padding: 3px 10px; border-radius: 100px;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 5.4vw, var(--step-4));
+    letter-spacing: -0.03em; font-weight: 700; max-width: 17ch;
+  }
+  .thesis {
+    margin-top: 22px; max-width: 58ch; font-size: var(--step-1); color: var(--ink-2); line-height: 1.5;
+  }
+  .thesis em { font-style: normal; color: var(--ink); font-weight: 600; box-shadow: inset 0 -0.42em 0 var(--accent-wash); }
+
+  /* ---- stat tiles -------------------------------------------------------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; margin-top: 44px;
+           background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .tile { background: var(--surface); padding: 20px 22px 18px; display: flex; flex-direction: column; gap: 6px; }
+  .tile .figure { font-family: var(--f-display); font-size: var(--step-3); font-weight: 700;
+                  letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .tile .figure .unit { font-size: 0.5em; font-weight: 600; letter-spacing: 0; color: var(--muted); margin-left: 3px; }
+  .tile .label { font-family: var(--f-display); font-size: var(--step--1); font-weight: 600; color: var(--ink-2); }
+  .tile .note { font-size: var(--step--1); color: var(--muted); line-height: 1.4; }
+
+  /* ---- section index ----------------------------------------------------- */
+  .rail { display: none; }
+  @media (min-width: 1000px) {
+    .rail { display: block; position: sticky; top: 28px; }
+    .rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+    .rail a {
+      display: grid; grid-template-columns: 1.6em 1fr; gap: 8px; align-items: baseline;
+      font-family: var(--f-display); font-size: var(--step--1); font-weight: 500;
+      color: var(--muted); text-decoration: none; padding: 4px 0; line-height: 1.3;
+    }
+    .rail a:hover { color: var(--accent); }
+    .rail a .n { font-family: var(--f-mono); font-size: 0.9em; color: var(--rule-strong); }
+    .rail .rail-title { font-size: var(--step--1); letter-spacing: 0.13em; text-transform: uppercase;
+                        color: var(--muted); font-family: var(--f-display); font-weight: 600;
+                        padding-bottom: 10px; margin-bottom: 8px; border-bottom: 1px solid var(--rule); }
+  }
+
+  /* ---- sections ---------------------------------------------------------- */
+  section { padding-top: 52px; scroll-margin-top: 20px; }
+  section > * + * { margin-top: 18px; }
+  .sec-head { display: grid; grid-template-columns: 2.2em 1fr; gap: 10px; align-items: baseline;
+              border-top: 2px solid var(--ink); padding-top: 14px; }
+  .sec-head .n { font-family: var(--f-mono); font-size: var(--step--1); font-weight: 600; color: var(--muted); }
+  .prose { max-width: var(--measure); }
+  .prose > * + * { margin-top: 16px; }
+  ul, ol.list { max-width: var(--measure); padding-left: 1.15em; margin: 0; }
+  ul li + li, ol.list li + li { margin-top: 8px; }
+  ul li::marker { color: var(--rule-strong); }
+  ol.list li::marker { color: var(--muted); font-family: var(--f-mono); font-size: 0.85em; }
+
+  /* ---- tables ------------------------------------------------------------ */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th {
+    font-family: var(--f-display); font-weight: 600; font-size: var(--step--1);
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    background: var(--surface-sunk); border-bottom: 1px solid var(--rule-strong); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.key { font-family: var(--f-display); font-weight: 600; color: var(--ink); }
+  .verdict-yes { color: var(--accent); font-weight: 600; }
+  .verdict-no { color: var(--muted); }
+
+  /* ---- decision list ----------------------------------------------------- */
+  .decisions { display: flex; flex-direction: column; gap: 1px; background: var(--rule);
+               border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .decision { background: var(--surface); display: grid; grid-template-columns: 3.2em 1fr; gap: 14px; padding: 16px 20px; }
+  @media (min-width: 760px) { .decision { grid-template-columns: 3.2em 1.3fr 1fr; } }
+  .decision .tag { font-family: var(--f-mono); font-weight: 600; font-size: var(--step--1);
+                   color: var(--surface); background: var(--accent); border-radius: 3px;
+                   padding: 2px 0; text-align: center; height: fit-content; }
+  .decision .adopt { font-family: var(--f-display); font-weight: 600; line-height: 1.35; font-size: var(--step-0); }
+  .decision .reject { font-size: var(--step--1); color: var(--muted); line-height: 1.45; }
+  .decision .reject::before { content: "instead of "; color: var(--rule-strong); }
+
+  /* ---- callouts ---------------------------------------------------------- */
+  .callout { border-left: 3px solid var(--accent); background: var(--accent-wash); padding: 16px 20px; border-radius: 0 4px 4px 0; }
+  .callout.risk { border-left-color: var(--risk); background: var(--risk-wash); }
+  .callout > * + * { margin-top: 10px; }
+  .callout h4 { color: var(--ink); }
+  .callout .label { font-family: var(--f-display); font-size: var(--step--1); font-weight: 600;
+                    letter-spacing: 0.1em; text-transform: uppercase; color: var(--risk); }
+
+  pre {
+    background: var(--surface-sunk); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 14px 16px; overflow-x: auto; margin: 0;
+    font-family: var(--f-mono); font-size: 0.82rem; line-height: 1.6; color: var(--ink-2);
+  }
+  pre .c { color: var(--muted); }
+  pre .k { color: var(--accent); }
+
+  /* ---- chart ------------------------------------------------------------- */
+  .panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 22px clamp(16px, 3vw, 26px) 20px; }
+  .panel-head { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .panel-title { font-family: var(--f-display); font-weight: 600; font-size: var(--step-0); }
+  .panel-sub { font-size: var(--step--1); color: var(--muted); max-width: 62ch; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; font-family: var(--f-display);
+                 font-size: var(--step--1); font-weight: 500; color: var(--ink-2); }
+  .swatch { width: 14px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  .chart { margin-top: 20px; overflow-x: auto; }
+  .chart-inner { min-width: 610px; }
+  /* Values sit in their own column, never inside the plot: a label sharing the
+     track would shrink the longest bar and break the one scale. */
+  .bar-row { display: grid; grid-template-columns: 15.5em 1fr 4.6em 3.4em; gap: 14px; align-items: center;
+             padding: 7px 0; border: none; background: none; width: 100%; text-align: left; font: inherit; color: inherit; cursor: default; }
+  .bar-label { font-family: var(--f-mono); font-size: 0.76rem; color: var(--ink-2); line-height: 1.3; }
+  .bar-stack, .bar-values { display: flex; flex-direction: column; gap: 3px; }
+  .bar-line { display: block; height: 10px; }
+  .bar { display: block; height: 9px; border-radius: 0 2px 2px 0; min-width: 2px; }
+  .bar.baseline { background: var(--baseline); }
+  .bar.proposed { background: var(--accent); }
+  .bar-value { font-family: var(--f-mono); font-size: 0.71rem; color: var(--muted); font-variant-numeric: tabular-nums;
+               white-space: nowrap; height: 10px; line-height: 10px; text-align: right; }
+  .bar-row:hover .bar-value, .bar-row:focus-visible .bar-value { color: var(--ink); }
+  .speedup { font-family: var(--f-display); font-weight: 700; font-size: 0.86rem; color: var(--accent);
+             text-align: right; font-variant-numeric: tabular-nums; }
+  .axis { display: grid; grid-template-columns: 15.5em 1fr 4.6em 3.4em; gap: 14px; margin-top: 10px; }
+  .axis-scale { position: relative; height: 26px; border-top: 1px solid var(--rule-strong); }
+  .axis-tick { position: absolute; top: 0; font-family: var(--f-mono); font-size: 0.68rem; color: var(--muted);
+               transform: translateX(-50%); padding-top: 5px; white-space: nowrap; }
+  .axis-tick::before { content: ""; position: absolute; top: 0; left: 50%; width: 1px; height: 4px; background: var(--rule-strong); }
+  .axis-tick:first-child { transform: none; }
+  .axis-tick:first-child::before { left: 0; }
+
+  .tip {
+    position: fixed; z-index: 20; pointer-events: none; opacity: 0;
+    background: var(--ink); color: var(--ground); border-radius: 4px;
+    padding: 7px 10px; font-family: var(--f-mono); font-size: 0.72rem; line-height: 1.5;
+    transition: opacity .12s ease; max-width: 260px;
+  }
+  .tip.on { opacity: 1; }
+
+  /* ---- diagram ----------------------------------------------------------- */
+  .diagram { overflow-x: auto; }
+  .diagram svg { min-width: 660px; display: block; }
+  .d-box { fill: var(--surface); stroke: var(--rule-strong); }
+  .d-box-accent { fill: var(--accent-wash); stroke: var(--accent); }
+  .d-box-base { fill: var(--baseline-wash); stroke: var(--baseline); }
+  .d-t { font-family: var(--f-display); font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  .d-s { font-family: var(--f-mono); font-size: 9.5px; fill: var(--muted); }
+  .d-edge { stroke: var(--rule-strong); stroke-width: 1.4; fill: none; }
+  .d-edge-accent { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+  .d-lane { font-family: var(--f-display); font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+            text-transform: uppercase; fill: var(--muted); }
+
+  /* ---- phases ------------------------------------------------------------ */
+  .phases { display: flex; flex-direction: column; gap: 1px; background: var(--rule);
+            border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .phase { background: var(--surface); display: grid; grid-template-columns: 2.4em 1fr; gap: 16px; padding: 15px 20px; }
+  @media (min-width: 760px) { .phase { grid-template-columns: 2.4em 1fr 1.05fr; } }
+  .phase .num { font-family: var(--f-mono); font-size: var(--step-1); font-weight: 600; color: var(--rule-strong); line-height: 1.2; }
+  .phase .what { font-family: var(--f-display); font-weight: 600; font-size: var(--step-0); }
+  .phase .what small { display: block; font-family: var(--f-body); font-weight: 400; font-size: var(--step--1); color: var(--muted); margin-top: 3px; }
+  .phase .exit { font-size: var(--step--1); color: var(--ink-2); line-height: 1.5; }
+  .phase .exit b { font-family: var(--f-display); font-size: 0.9em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+
+  footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--rule);
+           font-size: var(--step--1); color: var(--muted); max-width: var(--measure); }
+  footer > * + * { margin-top: 8px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="shell">
+
+  <header class="masthead">
+    <div class="kicker">
+      <span class="status-pill">Proposal for review</span>
+      <span class="eyebrow">Data Service · Java 21 / Spring Boot / MySQL · 7 Sep 2026</span>
+    </div>
+    <h1>OpenSearch on the read path</h1>
+    <p class="thesis">
+      Adopt OpenSearch as a <em>query accelerator, not a second source of truth</em>.
+      It decides which rows and in what order; MySQL still returns what is in them.
+      Six decisions, one reversible switch, and a reference implementation that measures every claim below.
+    </p>
+
+    <div class="tiles">
+      <div class="tile">
+        <span class="figure">152<span class="unit">×</span></span>
+        <span class="label">Worst query, p50</span>
+        <span class="note">1521 ms → 10 ms. EAV attributes + price window, sorted by price.</span>
+      </div>
+      <div class="tile">
+        <span class="figure">11<span class="unit">%</span></span>
+        <span class="label">Storage footprint</span>
+        <span class="note">23 MB of index against ~207 MB of the same data in MySQL.</span>
+      </div>
+      <div class="tile">
+        <span class="figure">≤0.2<span class="unit">ms</span></span>
+        <span class="label">Write-path cost</span>
+        <span class="note">One INSERT per mutation — inside run-to-run noise on POST.</span>
+      </div>
+      <div class="tile">
+        <span class="figure">0</span>
+        <span class="label">Ordering mismatches</span>
+        <span class="note">Identical result ids from both engines, all 7 scenarios.</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="rail" aria-label="Sections">
+      <div class="rail-title">Contents</div>
+      <ol>
+        <li><a href="#s1"><span class="n">01</span><span>The six decisions</span></a></li>
+        <li><a href="#s2"><span class="n">02</span><span>Why tuning plateaued</span></a></li>
+        <li><a href="#s3"><span class="n">03</span><span>Options considered</span></a></li>
+        <li><a href="#s4"><span class="n">04</span><span>Architecture</span></a></li>
+        <li><a href="#s5"><span class="n">05</span><span>Ingestion</span></a></li>
+        <li><a href="#s6"><span class="n">06</span><span>Versioning &amp; aliases</span></a></li>
+        <li><a href="#s7"><span class="n">07</span><span>Measured results</span></a></li>
+        <li><a href="#s8"><span class="n">08</span><span>Data cost</span></a></li>
+        <li><a href="#s9"><span class="n">09</span><span>Operations</span></a></li>
+        <li><a href="#s10"><span class="n">10</span><span>Risks &amp; a finding</span></a></li>
+        <li><a href="#s11"><span class="n">11</span><span>Rollout</span></a></li>
+        <li><a href="#s12"><span class="n">12</span><span>Open questions</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <section id="s1">
+        <div class="sec-head"><span class="n">01</span><h2>The six decisions</h2></div>
+        <p class="prose">Everything else in this document follows from these. Each is reversible by configuration, and each is implemented in the reference service.</p>
+        <div class="decisions">
+          <div class="decision">
+            <span class="tag">D1</span>
+            <span class="adopt">Search returns ids and sort order; MySQL hydrates the payload by primary key</span>
+            <span class="reject">storing the full API response in the index</span>
+          </div>
+          <div class="decision">
+            <span class="tag">D2</span>
+            <span class="adopt">A transactional outbox carrying only the aggregate id</span>
+            <span class="reject">dual writes from the service, or CDC on day one</span>
+          </div>
+          <div class="decision">
+            <span class="tag">D3</span>
+            <span class="adopt">Every document carries the aggregate's monotonic version as an external document version</span>
+            <span class="reject">trusting arrival order</span>
+          </div>
+          <div class="decision">
+            <span class="tag">D4</span>
+            <span class="adopt">Reads and writes address aliases; a rebuild is an alias move</span>
+            <span class="reject">mutating a live index's mapping</span>
+          </div>
+          <div class="decision">
+            <span class="tag">D5</span>
+            <span class="adopt">One <code>SearchPort</code>, two adapters, a router with shadow mode and automatic fallback</span>
+            <span class="reject">a feature flag wrapped around a second code path</span>
+          </div>
+          <div class="decision">
+            <span class="tag">D6</span>
+            <span class="adopt">The official <code>opensearch-java</code> client; mappings kept as reviewable JSON</span>
+            <span class="reject">Spring Data OpenSearch</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="s2">
+        <div class="sec-head"><span class="n">02</span><h2>Why index tuning plateaued</h2></div>
+        <div class="prose">
+          <p>The GET endpoints are slow not because MySQL is slow, but because the work the query asks for grows with the <em>result set</em> rather than with the <em>page</em>.</p>
+          <ol class="list">
+            <li><strong>Filters live in five tables.</strong> Vendor attributes, category path, tags, EAV attributes and regional stock each need a join or an <code>EXISTS</code> fan-out. No composite index spans tables, so the optimiser picks one driving index and filters the rest row by row.</li>
+            <li><strong>Sort keys are derived.</strong> "Cheapest variant price" is a <code>MIN()</code> over a child table. Sorting by it means computing it for every candidate row before discarding all but 20.</li>
+            <li><strong>The combination is caller-controlled.</strong> Ten optional filters and five sort fields make hundreds of shapes. You cannot carry hundreds of useful composite indexes, and each one taxes every write.</li>
+            <li><strong>The count costs as much as the page.</strong> <code>LIMIT 20</code> bounds rows returned, not rows examined — and the pagination <code>COUNT(*)</code> examines them all again.</li>
+          </ol>
+          <p>Indexes reduce the constant factor. They cannot change the fact that the filter/sort combination is known only at request time and spans tables.</p>
+          <p><strong>What an inverted index changes:</strong> it pre-computes at write time exactly what the query needs at read time — one flat document per aggregate, postings lists per filter term, doc-values columns per sort field. Filtering becomes an intersection of sorted id lists; sorting becomes a scan of one column. The join, the fan-out and the correlated sub-query are paid once, off the request path.</p>
+          <p>That is also its whole limitation: <strong>only query shapes you anticipated at index time get the speedup</strong>, and the data is exactly as fresh as your ingestion pipeline.</p>
+        </div>
+      </section>
+
+      <section id="s3">
+        <div class="sec-head"><span class="n">03</span><h2>Options considered</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Option</th><th>What it fixes</th><th>Why not, as the primary answer</th></tr></thead>
+            <tbody>
+              <tr><td class="key">More MySQL indexes</td><td>Constant factors</td><td>Already done. Cannot span tables or serve derived sort keys</td></tr>
+              <tr><td class="key">Read replicas</td><td>Contention with writes</td><td>Same plan, same cost — moves the problem</td></tr>
+              <tr><td class="key">Result caching</td><td>Repeated identical queries</td><td>Long-tail filter combinations have near-zero hit rate; invalidation is its own project</td></tr>
+              <tr><td class="key">Denormalised read table in MySQL</td><td>Joins</td><td>The strongest alternative, and cheapest to operate. But B-trees still cannot serve arbitrary AND-combinations of ten optional predicates, and multi-valued tags need a side table again. Fixes joins, not combinatorics</td></tr>
+              <tr><td class="key">Materialised views</td><td>Joins</td><td>MySQL has none; emulating them is the row above</td></tr>
+              <tr style="background: var(--accent-wash);"><td class="key">OpenSearch</td><td>Joins, combinatorics, derived sort keys, free text, facets</td><td class="verdict-yes">Adopted — accepting eventual consistency and a second system to run</td></tr>
+              <tr><td class="key">ClickHouse / analytics store</td><td>Aggregations over huge scans</td><td>Wrong shape: these are selective queries returning 20 rows, not scans</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose"><strong>If your filter set is small and fixed, take the denormalised read table instead.</strong> It needs no new infrastructure and can reuse the same outbox pipeline. The case for OpenSearch is specifically the combinatorics — arbitrary AND-combinations over multi-valued fields, plus relevance ranking and facet counts, which a row store cannot index for.</p>
+      </section>
+
+      <section id="s4">
+        <div class="sec-head"><span class="n">04</span><h2>Architecture</h2></div>
+        <p class="prose">Two paths that meet only at the database. A write never touches OpenSearch; a read never blocks on it.</p>
+
+        <div class="panel">
+          <div class="diagram">
+            <svg viewBox="0 0 730 396" role="img" aria-labelledby="diagram-title">
+              <title id="diagram-title">Write path records an outbox row; a relay builds projections and bulk-indexes them. Read path routes through the search router to either engine, then hydrates from MySQL.</title>
+
+              <text x="8" y="26" class="d-lane">Write path</text>
+              <rect class="d-box" x="8" y="38" width="150" height="62" rx="4"/>
+              <text x="22" y="60" class="d-t">POST / PUT / DELETE</text>
+              <text x="22" y="76" class="d-s">one transaction:</text>
+              <text x="22" y="89" class="d-s">tables + version + outbox</text>
+
+              <path class="d-edge" d="M158 69 H206" marker-end="url(#ar)"/>
+              <rect class="d-box" x="206" y="38" width="126" height="62" rx="4"/>
+              <text x="220" y="60" class="d-t">MySQL</text>
+              <text x="220" y="76" class="d-s">source of truth</text>
+              <text x="220" y="89" class="d-s">+ outbox_event</text>
+
+              <path class="d-edge" d="M269 100 V132" marker-end="url(#ar)"/>
+              <rect class="d-box" x="206" y="132" width="126" height="58" rx="4"/>
+              <text x="220" y="153" class="d-t">Outbox relay</text>
+              <text x="220" y="169" class="d-s">claim → load →</text>
+              <text x="220" y="181" class="d-s">index → delete</text>
+
+              <path class="d-edge" d="M332 161 H382" marker-end="url(#ar)"/>
+              <rect class="d-box" x="382" y="132" width="132" height="58" rx="4"/>
+              <text x="396" y="153" class="d-t">Projection</text>
+              <text x="396" y="169" class="d-s">1 aggregate →</text>
+              <text x="396" y="181" class="d-s">1 flat document</text>
+
+              <path class="d-edge-accent" d="M514 161 H564" marker-end="url(#ara)"/>
+              <rect class="d-box-accent" x="564" y="126" width="150" height="70" rx="4"/>
+              <text x="578" y="148" class="d-t">Bulk indexer</text>
+              <text x="578" y="164" class="d-s">external_gte version</text>
+              <text x="578" y="177" class="d-s">409 = stale, not error</text>
+              <text x="578" y="190" class="d-s">→ products_write</text>
+
+              <path class="d-edge-accent" d="M639 196 V236" marker-end="url(#ara)"/>
+              <rect class="d-box-accent" x="564" y="236" width="150" height="58" rx="4"/>
+              <text x="578" y="257" class="d-t">OpenSearch</text>
+              <text x="578" y="273" class="d-s">products-v2</text>
+              <text x="578" y="286" class="d-s">read + write aliases</text>
+
+              <text x="8" y="240" class="d-lane">Read path</text>
+              <rect class="d-box" x="8" y="252" width="150" height="58" rx="4"/>
+              <text x="22" y="273" class="d-t">GET /products</text>
+              <text x="22" y="289" class="d-s">filters, sort, page</text>
+
+              <path class="d-edge" d="M158 281 H206" marker-end="url(#ar)"/>
+              <rect class="d-box" x="206" y="240" width="150" height="82" rx="4"/>
+              <text x="220" y="261" class="d-t">Search router</text>
+              <text x="220" y="277" class="d-s">MYSQL | SHADOW |</text>
+              <text x="220" y="290" class="d-s">OPENSEARCH</text>
+              <text x="220" y="308" class="d-s">+ fallback on error</text>
+
+              <path class="d-edge-accent" d="M356 268 H564" marker-end="url(#ara)"/>
+              <text x="392" y="261" class="d-s">ids + sort order only</text>
+
+              <path class="d-edge d-dash" stroke-dasharray="3 3" d="M356 302 Q 300 348 269 348 L 240 348" marker-end="url(#ar)"/>
+              <rect class="d-box-base" x="90" y="330" width="150" height="52" rx="4"/>
+              <text x="104" y="350" class="d-t">MySQL adapter</text>
+              <text x="104" y="366" class="d-s">baseline &amp; fallback</text>
+
+              <path class="d-edge" d="M639 294 V330 H392" marker-end="url(#ar)"/>
+              <rect class="d-box" x="256" y="330" width="136" height="52" rx="4"/>
+              <text x="270" y="350" class="d-t">Hydrate by PK</text>
+              <text x="270" y="366" class="d-s">~5 ms for a page of 20</text>
+
+              <defs>
+                <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0 L8 4 L0 8 z" fill="var(--rule-strong)"/>
+                </marker>
+                <marker id="ara" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0 L8 4 L0 8 z" fill="var(--accent)"/>
+                </marker>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        <h3 style="margin-top:34px;">D1 — the index accelerates the query; MySQL still owns the payload</h3>
+        <p class="prose">The search returns ids and sort values only — <code>_source</code> fetching is switched off entirely. The page is then hydrated from MySQL with a batched primary-key lookup.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Full document in the index</th><th>Ids + hydrate <span class="verdict-yes">(proposed)</span></th></tr></thead>
+            <tbody>
+              <tr><td class="key">Round trips</td><td>1</td><td>2 — a measured +5 ms</td></tr>
+              <tr><td class="key">Index size</td><td>everything the API returns</td><td class="verdict-yes">filter and sort keys only — 23 MB vs ~207 MB</td></tr>
+              <tr><td class="key">Visible staleness</td><td>every field can be stale</td><td class="verdict-yes">membership and ordering only; field values always current</td></tr>
+              <tr><td class="key">New response field</td><td>mapping change + full reindex</td><td class="verdict-yes">nothing</td></tr>
+              <tr><td class="key">PII in the search cluster</td><td>whatever the response holds</td><td class="verdict-yes">none, by construction</td></tr>
+              <tr><td class="key">On failure</td><td>stale data served silently</td><td class="verdict-yes">fall back to MySQL, serve correct data</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose">Five milliseconds is the entire cost of this choice, against a 200–1500 ms saving. It also makes both adapters return the <em>same type</em> — ordered ids plus a total — which is what reduces shadow comparison and instant fallback to a few lines rather than a project.</p>
+      </section>
+
+      <section id="s5">
+        <div class="sec-head"><span class="n">05</span><h2>Ingestion: an outbox that carries the key, not the payload</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Approach</th><th>Atomic?</th><th>Write-path cost</th><th>Ordering &amp; replay</th><th>Verdict</th></tr></thead>
+            <tbody>
+              <tr><td class="key">Dual write, inline</td><td class="verdict-no">No</td><td>HTTP on the request path</td><td>Manual</td><td class="verdict-no">Rejected — silent divergence on every partial failure</td></tr>
+              <tr><td class="key">Async fire-and-forget</td><td class="verdict-no">No</td><td>Low</td><td>Lost on crash</td><td class="verdict-no">Rejected — same, with less evidence</td></tr>
+              <tr><td class="key">Poll <code>updated_at</code></td><td>n/a</td><td>None</td><td>Misses deletes; skews on long transactions</td><td class="verdict-no">Rejected as primary; kept as a repair tool</td></tr>
+              <tr style="background: var(--accent-wash);"><td class="key">Outbox with the aggregate id</td><td class="verdict-yes">Yes</td><td class="verdict-yes">1 narrow INSERT</td><td>At-least-once, idempotent, coalescing</td><td class="verdict-yes">Adopted</td></tr>
+              <tr><td class="key">Outbox with the payload</td><td class="verdict-yes">Yes</td><td>INSERT + build the projection inline</td><td>At-least-once</td><td class="verdict-no">Rejected — doubles storage, cannot coalesce</td></tr>
+              <tr><td class="key">CDC (Debezium + Kafka)</td><td class="verdict-yes">Yes</td><td class="verdict-yes">Zero</td><td>Strong, replayable</td><td>Later — high operational weight for one projection</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose">The row is <code>(aggregate_type, aggregate_id, occurred_at)</code> plus claim fields — about 70 bytes, no payload. That buys three properties:</p>
+        <ul class="prose">
+          <li><strong>Coalescing.</strong> Twenty writes to one product in a poll window produce twenty rows but one aggregate load and one indexed document. Bulk imports and price feeds cost the index almost nothing extra.</li>
+          <li><strong>Idempotent replay.</strong> The relay always reads <em>current</em> state, so redelivery is a no-op or a newer write. There is no stale payload to apply.</li>
+          <li><strong>Deletes come free.</strong> An id the loader cannot find <em>is</em> a delete — no tombstone events, no special case in the write path.</li>
+        </ul>
+        <p class="prose">The write path's entire footprint is two lines, kept explicit rather than hidden in an entity listener, so a reviewer can see on any new write method whether the index will hear about it:</p>
+        <pre><span class="c">// inside the transaction that already exists</span>
+product.<span class="k">bumpVersion</span>();
+outbox.<span class="k">productChanged</span>(product.getId());</pre>
+        <p class="prose">Recording is <code>@Transactional(propagation = MANDATORY)</code>: calling it outside a transaction fails loudly rather than quietly reintroducing the dual-write problem. The relay claims work with <code>SELECT … FOR UPDATE SKIP LOCKED</code>, so every instance can poll the same table — no leader election, no ShedLock.</p>
+        <div class="callout">
+          <h4>Claim, then delete — never delete, then index</h4>
+          <p>The cycle is <strong>claim → load → index → delete</strong>. That is at-least-once across a crash, and D3 makes at-least-once harmless. Deleting first would be at-most-once: silent data loss in the index on any crash.</p>
+        </div>
+      </section>
+
+      <section id="s6">
+        <div class="sec-head"><span class="n">06</span><h2>Versioning and aliases</h2></div>
+        <div class="prose">
+          <p><strong>D3.</strong> <code>aggregate_version</code> is a monotonic counter bumped by <em>every</em> write to the aggregate — including writes that only touch a child table, such as a variant reprice. It is sent as the external document version with <code>external_gte</code>, so the cluster itself refuses to install an older document. One flag handles four hazards:</p>
+          <ul>
+            <li>Two relay workers on the same aggregate cannot interleave into a stale result.</li>
+            <li>Redelivery after a crash is a no-op.</li>
+            <li>A full backfill can run against a live index — an old snapshot row loses to the live version.</li>
+            <li>The relay may read from a lagging replica without overwriting a fresher document.</li>
+          </ul>
+          <p>The price: <strong>a 409 in the bulk response is a normal outcome</strong>, counted as <em>stale</em>, not an error. Code that treats it as a failure will retry forever.</p>
+          <p><strong>D4.</strong> Nothing addresses a concrete index. Reads go through <code>products_read</code>, writes through <code>products_write</code>; physical indices are <code>products-v1</code>, <code>products-v2</code>, … A rebuild — measured at <strong>14.7 s for 101,400 documents</strong> — is:</p>
+        </div>
+        <pre><span class="c">1.</span> create products-v(N+1) from the mapping resource
+<span class="c">2.</span> move the <span class="k">WRITE</span> alias to it        <span class="c">— live changes land in the new index</span>
+<span class="c">3.</span> backfill by keyset over the PK       <span class="c">— old rows lose to live ones on version</span>
+<span class="c">4.</span> refresh, then move the <span class="k">READ</span> alias  <span class="c">— readers cut over atomically</span>
+<span class="c">5.</span> drop products-vN once you are happy</pre>
+        <p class="prose">Step 3 is safe next to step 2 only because of external versioning. The one caveat: between steps 2 and 4 the old index stops receiving updates, so aborting mid-rebuild leaves it behind — recovery is to move the write alias back and replay the window.</p>
+      </section>
+
+      <section id="s7">
+        <div class="sec-head"><span class="n">07</span><h2>Measured results</h2></div>
+        <p class="prose">100,000 products, 250,427 variants, 375,768 inventory rows, 401,975 EAV attributes. MySQL 8.4 with a 1 GB buffer pool and a <code>FULLTEXT</code> index; OpenSearch 3.8.0, single node, 1 GB heap; both in Docker on one laptop. 15 iterations after 3 warm-ups; the whole dataset fits in the buffer pool, so MySQL pays no disk I/O.</p>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Engine latency by query shape — p50, milliseconds</div>
+              <div class="panel-sub">Hydration excluded: it is identical on both paths and would dilute the comparison. Both engines returned identical result ids on every scenario.</div>
+            </div>
+            <div class="legend">
+              <span><i class="swatch" style="background: var(--baseline);"></i>MySQL</span>
+              <span><i class="swatch" style="background: var(--accent);"></i>OpenSearch</span>
+            </div>
+          </div>
+          <div class="chart">
+            <div class="chart-inner" id="chart"></div>
+          </div>
+        </div>
+
+        <h3 style="margin-top:34px;">End to end, including hydration</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Endpoint shape</th><th class="num">MySQL wall</th><th class="num">OpenSearch wall</th><th class="num">of which engine</th><th class="num">of which hydration</th></tr></thead>
+            <tbody>
+              <tr><td class="key">EAV + price window</td><td class="num">1553 ms</td><td class="num verdict-yes">24 ms</td><td class="num">10 ms</td><td class="num">5.0 ms</td></tr>
+              <tr><td class="key">category + tags + in-stock</td><td class="num">229 ms</td><td class="num verdict-yes">22 ms</td><td class="num">9 ms</td><td class="num">5.3 ms</td></tr>
+              <tr><td class="key">plain page by date</td><td class="num">251 ms</td><td class="num verdict-yes">18 ms</td><td class="num">7 ms</td><td class="num">4.6 ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose">Hydration is ~5 ms regardless of engine or scenario — a flat, predictable tax, and the price of everything D1 buys.</p>
+
+        <h3 style="margin-top:34px;">The write path</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>200 requests per run, first run discarded as warm-up</th><th class="num">POST p50</th><th class="num">PUT p50</th></tr></thead>
+            <tbody>
+              <tr><td class="key">Outbox enabled (runs 2, 3)</td><td class="num">6.16 / 5.15 ms</td><td class="num">4.15 / 3.62 ms</td></tr>
+              <tr><td class="key">Outbox disabled (runs 2, 3)</td><td class="num">5.59 / 5.21 ms</td><td class="num">3.99 / 3.55 ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose">The outbox INSERT sits <strong>inside run-to-run noise</strong>. The honest statement is ≤0.2 ms on a small PUT — roughly 2–4% — and nothing detectable on a POST that already writes five tables.</p>
+
+        <h3 style="margin-top:34px;">Pipeline and failure behaviour</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Property</th><th>Measured</th></tr></thead>
+            <tbody>
+              <tr><td class="key">Initial index of 100,000 products through the outbox</td><td>~40 s, single relay thread, bulk size 500</td></tr>
+              <tr><td class="key">Full rebuild + alias cutover</td><td>14.7 s for 101,400 documents (~6,900 docs/s)</td></tr>
+              <tr><td class="key">Reconciliation, 500-row sample</td><td>101,400 rows / 101,400 docs — 0 missing, 0 stale</td></tr>
+              <tr><td class="key">Query with the cluster paused</td><td>HTTP 200, served from MySQL in 2.24 s</td></tr>
+              <tr><td class="key">POST with the cluster paused</td><td>HTTP 201 in 118 ms; backlog drained itself on recovery</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose"><em>Caveat on precision:</em> a repeat run gave 6–9 ms p50 for OpenSearch across the same scenarios, so read that column as "single-digit milliseconds", not as an exact figure. MySQL was stable to within ~5%.</p>
+      </section>
+
+      <section id="s8">
+        <div class="sec-head"><span class="n">08</span><h2>Data cost, and the levers behind it</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Store</th><th class="num">Rows / docs</th><th class="num">Size</th></tr></thead>
+            <tbody>
+              <tr><td class="key">MySQL — product + variants + inventory + attributes + tags, data and indexes</td><td class="num">100k + 1.33M child rows</td><td class="num">~207 MB</td></tr>
+              <tr><td class="key">OpenSearch — <code>products-v1</code>, one shard, no replica</td><td class="num">100,800</td><td class="num verdict-yes">23 MB</td></tr>
+              <tr><td class="key"><code>outbox_event</code> at rest</td><td class="num">drains to 0</td><td class="num">~70 B/row</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose"><strong>Sizing your own:</strong> <code>index_size ≈ documents × indexed_bytes_per_document × (1 + replicas)</code>, with the per-document figure taken from a 100k-document sample of <em>your</em> fields — it is dominated by which fields you index, not by row count. Add ~15% for merges and translog.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Lever</th><th>Saving</th><th>What it costs you</th></tr></thead>
+            <tbody>
+              <tr><td class="key">Index filter/sort keys only; hydrate the rest</td><td>Largest single factor</td><td>+5 ms per request</td></tr>
+              <tr><td class="key"><code>_source.excludes: ["description"]</code></td><td>Large for text-heavy docs</td><td>Field cannot be read back from the index; rebuilds come from MySQL — which they do anyway</td></tr>
+              <tr><td class="key"><code>index: false, doc_values: false</code> on display-only fields</td><td>Moderate</td><td>Cannot filter, sort or aggregate on them</td></tr>
+              <tr><td class="key"><code>norms: false</code>, <code>index_options: docs</code></td><td>Moderate</td><td>No length normalisation in scoring; no phrase queries on that field</td></tr>
+              <tr><td class="key">Flattened <code>attrFlat</code> keywords instead of <code>nested</code></td><td>Large — <code>nested</code> multiplies the Lucene doc count per attribute</td><td>No per-attribute scoring or key-scoped ranges</td></tr>
+              <tr><td class="key"><code>codec: best_compression</code></td><td>~15–25%</td><td>Slightly slower fetches — irrelevant when <code>_source</code> is barely fetched</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose"><strong>Added load on MySQL</strong> is three bounded things: one INSERT per mutating request; one indexed <code>SELECT … LIMIT 500 SKIP LOCKED</code> every 200 ms per instance; and the relay's five batched key lookups per batch — movable to a read replica. Set against that, the GET endpoints stop issuing the join-and-sort query <em>and</em> its <code>COUNT(*)</code> twin. The net effect on the primary is strongly negative load.</p>
+      </section>
+
+      <section id="s9">
+        <div class="sec-head"><span class="n">09</span><h2>Operations</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Metric</th><th>Meaning</th><th>Alert on</th></tr></thead>
+            <tbody>
+              <tr><td class="key"><code>catalog.outbox.lag.seconds</code></td><td>Age of the oldest unprocessed change</td><td class="verdict-yes">p99 &gt; 60 s — the one that means "the index is behind"</td></tr>
+              <tr><td class="key"><code>catalog.outbox.backlog</code></td><td>Rows awaiting indexing</td><td>Sustained growth over 15 min</td></tr>
+              <tr><td class="key"><code>catalog.index.documents{outcome}</code></td><td>indexed / deleted / stale / failed</td><td>Any <code>failed</code></td></tr>
+              <tr><td class="key"><code>catalog.search.fallback</code></td><td>OpenSearch errors served from MySQL</td><td>Any sustained rate</td></tr>
+              <tr><td class="key"><code>catalog.search.shadow{match}</code></td><td>Shadow comparison outcome</td><td>Any <code>false</code> during the shadow phase</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Situation</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td class="key">Index behind</td><td>Check the backlog; raise the claim batch size or add an instance</td></tr>
+              <tr><td class="key">Suspected drift</td><td>Reconcile with <code>repair=true</code> — repairs go through the outbox, so there is one code path that writes documents</td></tr>
+              <tr><td class="key">Known bad window</td><td>Replay the last N minutes of changes</td></tr>
+              <tr><td class="key">Mapping change</td><td>Reindex: new index, backfill, alias swap</td></tr>
+              <tr><td class="key">Cluster unhealthy</td><td>Set the engine to <code>MYSQL</code>, or let automatic fallback handle it</td></tr>
+              <tr><td class="key">Poison row</td><td>After <code>max-attempts</code> it stops being claimed but stays visible, so the lag alert keeps firing and <code>last_error</code> says why</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="s10">
+        <div class="sec-head"><span class="n">10</span><h2>Risks — and one finding</h2></div>
+
+        <div class="callout risk">
+          <span class="label">Found while building the reference implementation</span>
+          <h4>Descending sort on a <code>scaled_float</code> field can silently return non-maximal documents</h4>
+          <p>Ordering diverged between the two engines on a deep page. The divergence was in OpenSearch: a descending sort returns documents that are <em>not</em> the maximum, while a <code>max</code> aggregation on the same field, in the same query, reports the true maximum.</p>
+          <pre>GET products/_search {"sort":[{"ratingAvg":"desc"}], "size":1}    → 3.12
+GET products/_search {"aggs":{"m":{"max":{"field":"ratingAvg"}}}}  → 5.0</pre>
+          <p><code>docvalue_fields</code> confirms the true-maximum document exists, matches the filter, holds doc-value <code>5.0</code> — and is simply not returned first. Reproduced on <strong>OpenSearch 2.19.6 and 3.8.0</strong>, single shard, force-merged to one segment, with and without concurrent segment search. It is data-dependent: sometimes off by one tick (199.97 for 200.00), sometimes badly wrong. Adding a <code>range</code> filter masks it, which is why it survives casual testing.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field type</th><th>Ascending sort</th><th>Descending sort</th></tr></thead>
+            <tbody>
+              <tr><td class="key"><code>scaled_float</code></td><td>correct</td><td style="color: var(--risk); font-weight: 600;">WRONG</td></tr>
+              <tr><td class="key"><code>float</code>, <code>double</code>, <code>half_float</code>, <code>long</code>, <code>integer</code></td><td>correct</td><td class="verdict-yes">correct</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose"><strong>Mitigations, already applied:</strong> money is stored as <code>long</code> minor units and ratings as <code>float</code> — never <code>scaled_float</code> on a field you sort by; the OpenSearch version is pinned and the parity check re-runs on every upgrade; and shadow mode is treated as mandatory, because comparing id lists is what surfaced this. No amount of code review would have.</p>
+
+        <h3 style="margin-top:34px;">The other risks</h3>
+        <ul class="prose">
+          <li><strong>Pagination.</strong> <code>from + size</code> is capped at 10,000; past that callers move to <code>search_after</code>, for which the tiebreaker sort is already in place.</li>
+          <li><strong>Totals are a lower bound</strong> past 10,000 hits, and the response says so. This is the one visible contract difference in the whole migration — confirm it with API consumers.</li>
+          <li><strong>No read-your-writes.</strong> Steady-state lag is sub-second, but it is not zero. Read the entity by primary key after a write (that path never touches OpenSearch), or insert it client-side. Never reach for <code>refresh=true</code> — it destroys indexing throughput.</li>
+          <li><strong>Hard deletes carry no version</strong>, so a delete racing a re-create of the same id could resurrect a document. If ids are reused, switch to a soft-delete flag and deletes become ordinary versioned updates.</li>
+          <li><strong>Data classification.</strong> Only filter and sort keys reach the cluster today, so no PII does. Keep that deliberate: adding a customer name to the index is a data-protection decision, not a mapping decision.</li>
+        </ul>
+        <p class="prose"><strong>What must not move:</strong> point lookups by primary key, anything transactional, any read a write decision depends on, ad-hoc reporting whose filters are not known in advance, and exact counts on very large result sets.</p>
+      </section>
+
+      <section id="s11">
+        <div class="sec-head"><span class="n">11</span><h2>Rollout</h2></div>
+        <p class="prose">Six phases, each with an exit criterion. The order is the point: nothing customer-facing changes until the two engines have agreed for a week on real traffic.</p>
+        <div class="phases">
+          <div class="phase">
+            <span class="num">0</span>
+            <span class="what">Foundations<small>Cluster provisioned, mapping reviewed, outbox and relay deployed with the engine still set to MySQL</small></span>
+            <span class="exit"><b>Exit</b>Backlog drains; lag p99 under 5 s at production write load</span>
+          </div>
+          <div class="phase">
+            <span class="num">1</span>
+            <span class="what">Backfill<small>Full reindex; nightly reconciliation switched on</small></span>
+            <span class="exit"><b>Exit</b>Zero missing, zero stale for a week</span>
+          </div>
+          <div class="phase">
+            <span class="num">2</span>
+            <span class="what">Shadow<small>MySQL answers; OpenSearch runs alongside and divergences are counted</small></span>
+            <span class="exit"><b>Exit</b>Mismatch rate flat at zero for a week across <em>real</em> query shapes, not synthetic ones</span>
+          </div>
+          <div class="phase">
+            <span class="num">3</span>
+            <span class="what">Canary<small>OpenSearch answers for a small traffic share, via the per-request override</small></span>
+            <span class="exit"><b>Exit</b>p95 improves, error rate flat, fallback counter at ~0</span>
+          </div>
+          <div class="phase">
+            <span class="num">4</span>
+            <span class="what">Default<small>Flip the deployment default; keep the MySQL adapter and the fallback</small></span>
+            <span class="exit"><b>Exit</b>Two weeks stable</span>
+          </div>
+          <div class="phase">
+            <span class="num">5</span>
+            <span class="what">Extend<small>The next endpoint family; consider CDC only once the outbox is straining</small></span>
+            <span class="exit"><b>Exit</b>—</span>
+          </div>
+        </div>
+        <div class="callout">
+          <h4>Do not delete the MySQL adapter</h4>
+          <p>It is the fallback, the shadow reference, and the thing that makes rollback a configuration change rather than a deploy.</p>
+        </div>
+        <p class="prose"><strong>Effort.</strong> The reference implementation is ~3,500 lines of Java, of which <strong>~1,100 are the integration itself</strong> — outbox, relay, indexer, projection, adapter, translator, index admin. The rest is the demo domain, the MySQL baseline and the benchmark harness: code you already have or do not need. Budget 2–4 weeks for one engineer to take the first endpoint family to production, plus cluster provisioning. Subsequent endpoints are days — the pipeline is shared, and only the projection and the translator grow.</p>
+      </section>
+
+      <section id="s12">
+        <div class="sec-head"><span class="n">12</span><h2>Open questions</h2></div>
+        <ol class="list prose">
+          <li><strong>Volume and shape.</strong> Row counts and average document size for the real aggregate, to turn the sizing formula into a cluster.</li>
+          <li><strong>Tenancy.</strong> If the data is multi-tenant: a filter plus routing key by default; one index per tenant only for very few, very large tenants.</li>
+          <li><strong>Which endpoints first,</strong> ranked by p95 × call volume. The benchmark harness can rank them against real query shapes.</li>
+          <li><strong>Are exact totals contractual</strong> on any endpoint?</li>
+          <li><strong>Write burst profile</strong> — peak writes per second and the largest bulk import, to size the relay batch and interval.</li>
+          <li><strong>Is there a read replica</strong> the relay's aggregate loads can use?</li>
+        </ol>
+      </section>
+
+      <footer>
+        <p>Every figure on this page was measured on the accompanying reference implementation — a runnable Spring Boot service with MySQL and OpenSearch in Docker Compose, 3 unit tests and 4 Testcontainers integration tests covering outbox delivery, child-table writes, deletes and stale-version rejection.</p>
+        <p>Absolute latencies are laptop numbers; the ratios and the shapes are what transfer.</p>
+      </footer>
+
+    </main>
+  </div>
+</div>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+  const DATA = [
+    { name: "eav-attributes-and-price-window", mysql: 1521, mysql95: 1743, os: 10, os95: 15, speedup: "152×", hits: 3301 },
+    { name: "status-page-by-date",             mysql: 255,  mysql95: 283,  os: 11, os95: 15, speedup: "23×",  hits: 80213 },
+    { name: "deep-page-100 (offset 2000)",     mysql: 253,  mysql95: 265,  os: 21, os95: 26, speedup: "12×",  hits: 80213 },
+    { name: "category-tags-instock",           mysql: 225,  mysql95: 237,  os: 11, os95: 19, speedup: "21×",  hits: 5570 },
+    { name: "everything-at-once",              mysql: 212,  mysql95: 242,  os: 10, os95: 12, speedup: "21×",  hits: 10 },
+    { name: "fulltext-plus-filters",           mysql: 63,   mysql95: 63,   os: 9,  os95: 27, speedup: "7.0×", hits: 1928 },
+    { name: "vendor-country-sort-by-price",    mysql: 49,   mysql95: 52,   os: 9,  os95: 12, speedup: "5.4×", hits: 6508 }
+  ];
+  const MAX = 1600;
+  const TICKS = [0, 400, 800, 1200, 1600];
+  const pct = (v) => (v / MAX * 100).toFixed(3) + "%";
+
+  const chart = document.getElementById("chart");
+  const rows = DATA.map((d) => `
+    <div class="bar-row" tabindex="0"
+         data-tip="${d.name}&#10;MySQL      p50 ${d.mysql} ms · p95 ${d.mysql95} ms&#10;OpenSearch p50 ${d.os} ms · p95 ${d.os95} ms&#10;${d.hits.toLocaleString()} matching rows · ${d.speedup} faster">
+      <span class="bar-label">${d.name}</span>
+      <span class="bar-stack">
+        <span class="bar-line"><span class="bar baseline" style="width:${pct(d.mysql)}"></span></span>
+        <span class="bar-line"><span class="bar proposed" style="width:${pct(d.os)}"></span></span>
+      </span>
+      <span class="bar-values">
+        <span class="bar-value">${d.mysql} ms</span>
+        <span class="bar-value">${d.os} ms</span>
+      </span>
+      <span class="speedup">${d.speedup}</span>
+    </div>`).join("");
+
+  const ticks = TICKS.map((t) =>
+    `<span class="axis-tick" style="left:${(t / MAX * 100).toFixed(3)}%">${t}${t === MAX ? " ms" : ""}</span>`).join("");
+
+  chart.innerHTML = rows +
+    `<div class="axis"><span></span><span class="axis-scale">${ticks}</span><span></span><span></span></div>`;
+
+  const tip = document.getElementById("tip");
+  const show = (el, x, y) => {
+    tip.textContent = el.dataset.tip.replace(/&#10;/g, "\n");
+    tip.style.whiteSpace = "pre";
+    tip.style.left = Math.min(x + 14, window.innerWidth - 280) + "px";
+    tip.style.top = (y + 16) + "px";
+    tip.classList.add("on");
+  };
+  document.querySelectorAll(".bar-row").forEach((row) => {
+    row.addEventListener("mousemove", (e) => show(row, e.clientX, e.clientY));
+    row.addEventListener("mouseleave", () => tip.classList.remove("on"));
+    row.addEventListener("focus", () => {
+      const r = row.getBoundingClientRect();
+      show(row, r.left + 40, r.top);
+    });
+    row.addEventListener("blur", () => tip.classList.remove("on"));
+  });
+</script>

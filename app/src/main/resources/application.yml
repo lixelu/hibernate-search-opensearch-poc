@@ -1,0 +1,165 @@
+spring:
+  application:
+    name: catalog-data-service
+  # Virtual threads: the read path is now two sequential network calls (OpenSearch,
+  # then MySQL hydration), so request threads spend most of their life blocked on IO.
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:mysql://localhost:3306/catalog?rewriteBatchedStatements=true&cachePrepStmts=true&useServerPrepStmts=true
+    username: catalog
+    password: catalog
+    hikari:
+      maximum-pool-size: 20
+      pool-name: catalog-pool
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      # Hibernate ORM statistics, exported as hibernate_* meters by Spring Boot.
+      # Needs the hibernate-micrometer artifact as well: the property alone produces
+      # nothing. This is the only view into what Hibernate Search's event processor
+      # costs the ORM, since the library reports nothing itself.
+      hibernate.generate_statistics: true
+      hibernate.jdbc.batch_size: 100
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
+      # The single most effective fan-out mitigation, and it is a one-liner.
+      # Reference doc 19.3.2: the event processor "will completely reload entities from
+      # the database", in a session that has none of the state the writer had, and "it
+      # may also need to load lazy associations". The doc names batch fetching as the
+      # first way to mitigate that. Renaming one category fans out to thousands of
+      # products; without this, each product's lazy collections are a separate SELECT.
+      hibernate.default_batch_fetch_size: 100
+
+      # ---- Hibernate Search ------------------------------------------------
+      # The elasticsearch backend also speaks OpenSearch, but only up to 2.x:
+      # there is no OpenSearch 3 dialect in Hibernate Search 7.2 or 8.x. Declaring
+      # the dialect explicitly keeps the mapping deterministic across upgrades.
+      hibernate.search.enabled: true
+      hibernate.search.backend.type: elasticsearch
+      hibernate.search.backend.uris: http://localhost:9200
+      hibernate.search.backend.version: opensearch:2.19
+      # Reference doc 18.4.6: request_timeout "is not defined by default". Unset, a
+      # request that never answers holds its indexing queue open indefinitely, and the
+      # queue is one of only ten. read_timeout alone does not cover connect + send.
+      hibernate.search.backend.request_timeout: 30000
+      hibernate.search.backend.connection_timeout: 1000
+      # Where background failures go. Without it they are logged at ERROR and nothing
+      # else -- and under outbox-polling every indexing operation is a background one.
+      hibernate.search.background_failure_handler: bean:indexingFailureHandler
+      # Fine for a demo. In production use "none" and manage the schema explicitly,
+      # the same way the hand-rolled path uses versioned indices behind aliases.
+      hibernate.search.schema_management.strategy: create-or-update
+      # The transactional outbox, provided by the library: index events are written
+      # in the application transaction and processed by a background poller.
+      hibernate.search.coordination.strategy: outbox-polling
+      hibernate.search.coordination.event_processor.polling_interval: 200
+      # Default is 50. Higher means fewer transactions and a warmer persistence context,
+      # which is what makes a fan-out cheap -- but the doc warns it "will increase memory
+      # usage and in extreme cases may lead to OutOfMemoryErrors", and each event here
+      # loads a product plus five collections. 200 is a measured compromise, not a default.
+      hibernate.search.coordination.event_processor.batch_size: 200
+      # Time-ordered UUIDs, so event_processor.order=auto resolves to "id" instead of
+      # "time" (doc 19.3.5). Same ordering guarantee, ordered by the primary key rather
+      # than by a secondary index, which is what removes the deadlock risk once more
+      # than one node is processing events.
+      hibernate.search.coordination.entity.mapping.outboxevent.uuid_gen_strategy: time
+      # Default is 30s. A failed event blocks nothing else, so waiting is cheap, but 30s
+      # of a cluster hiccup is enough to burn all three attempts and abort the event.
+      hibernate.search.coordination.event_processor.retry_delay: 10
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    distribution:
+      # Percentiles for the meters an SLO would be written against.
+      percentiles-histogram:
+        catalog.search.request: true
+        catalog.search.engine: true
+      percentiles:
+        catalog.search.request: 0.5,0.95,0.99
+        catalog.search.engine: 0.5,0.95,0.99
+        catalog.search.hydration: 0.5,0.95,0.99
+  endpoint:
+    health:
+      show-details: always
+      # Registers the livenessState / readinessState contributors. Without this they
+      # only appear on Kubernetes, and referencing them in a group fails startup.
+      probes:
+        enabled: true
+      # Readiness must depend only on what the instance needs in order to serve a
+      # CORRECT response. A search outage degrades latency, not correctness, so it
+      # must not pull the instance out of the load balancer.
+      group:
+        readiness:
+          include: readinessState, db
+        liveness:
+          include: livenessState
+      # These live under endpoint.health, not health. At the wrong path they are
+      # silently ignored: DEGRADED is then an unranked status, the aggregate reports
+      # UP, and the behaviour that looks correct is an accident.
+      status:
+        order: DOWN, OUT_OF_SERVICE, DEGRADED, UNKNOWN, UP
+        http-mapping:
+          DEGRADED: 200
+
+logging:
+  level:
+    com.acme.catalog: INFO
+
+catalog:
+  search:
+    # MYSQL | SHADOW | OPENSEARCH -- the migration switch. Override per request with ?engine=
+    engine: OPENSEARCH
+    fallback-to-mysql: true
+    max-page-size: 100
+    # Ask the engine for this many ids beyond the page, so rows the index still lists
+    # but MySQL no longer has can be replaced rather than leaving a short page.
+    hydration-surplus: 5
+    opensearch:
+      uri: http://localhost:9200
+      index-prefix: products
+      read-alias: products_read
+      write-alias: products_write
+      # Must not exceed the index's max_result_window (product-index.json).
+      # 150000 supports a from=100000 & size=1000 contract; see spec 9.3 for the cost.
+      max-from: 150000
+      track-total-hits-up-to: 10000
+      # Measured free at 100k docs (see spec 9.3). Re-measure at your own cardinality
+      # before assuming it stays free -- counting is linear in matched documents.
+      exact-total-hits: true
+      connect-timeout-millis: 1000
+      socket-timeout-millis: 2000
+      bootstrap-index: true
+  indexing:
+    relay-enabled: true
+    claim-batch-size: 500
+    poll-delay-ms: 200
+    claim-timeout: 60s
+    bulk-size: 500
+    reindex-page-size: 2000
+    # Where the OpenSearch external document version comes from. Spec section 5.4.
+    #   AGGREGATE_VERSION - a counter the write path bumps. Orders everything, needs a
+    #                       column and one line of discipline per write method.
+    #   READ_TIMESTAMP    - the database clock at the moment the relay read the state.
+    #                       No column, immune to child deletes. Requires one clock, and
+    #                       reads served by the primary.
+    #   MAX_UPDATED_AT    - GREATEST(updated_at) across the aggregate. Catches writes
+    #                       that bypass the service, but goes BACKWARDS on child-row
+    #                       deletes. Only safe with soft deletes.
+    version-source: AGGREGATE_VERSION
+  demo:
+    seed-enabled: true
+    products: 20000
+    enqueue-after-seed: true

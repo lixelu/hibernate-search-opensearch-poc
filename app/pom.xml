@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.acme</groupId>
+  <artifactId>catalog-data-service</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>catalog-data-service</name>
+  <description>Reference implementation: MySQL write model + OpenSearch read path</description>
+
+  <properties>
+    <java.version>21</java.version>
+    <opensearch-java.version>3.10.0</opensearch-java.version>
+    <!-- 7.2.x is the line built against Hibernate ORM 6.6, which is what Spring Boot
+         3.5 manages. Hibernate Search 8.x requires ORM 7 (Spring Boot 4). -->
+    <hibernate-search.version>7.2.6.Final</hibernate-search.version>
+    <opensearch-testcontainers.version>4.1.0</opensearch-testcontainers.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-mysql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- OpenSearch: the official low-level typed client. No Spring Data OpenSearch on purpose;
+         see docs/opensearch-integration-spec.md section 5.3 for the rationale. -->
+    <dependency>
+      <groupId>org.opensearch.client</groupId>
+      <artifactId>opensearch-java</artifactId>
+      <version>${opensearch-java.version}</version>
+    </dependency>
+
+    <!-- Hibernate Search: entity-driven indexing with its own transactional outbox.
+         The elasticsearch backend also speaks OpenSearch, but only up to 2.x. There
+         is no OpenSearch 3 dialect in 7.2.x or in 8.x. See the spec. -->
+    <dependency>
+      <groupId>org.hibernate.search</groupId>
+      <artifactId>hibernate-search-mapper-orm</artifactId>
+      <version>${hibernate-search.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.search</groupId>
+      <artifactId>hibernate-search-backend-elasticsearch</artifactId>
+      <version>${hibernate-search.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.search</groupId>
+      <artifactId>hibernate-search-mapper-orm-outbox-polling</artifactId>
+      <version>${hibernate-search.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <!--
+      Hibernate ORM statistics as Micrometer meters. Spring Boot's
+      HibernateMetricsAutoConfiguration is conditional on this artifact, so
+      hibernate.generate_statistics=true alone produces nothing without it.
+      Needed here to test whether Hibernate Search's event processor shows up in
+      ORM statistics at all.
+    -->
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-micrometer</artifactId>
+    </dependency>
+
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mysql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.opensearch</groupId>
+      <artifactId>opensearch-testcontainers</artifactId>
+      <version>${opensearch-testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-configuration-processor</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- The end-to-end suite drives a RUNNING service, so it must never be part
+               of the ordinary build. It is opt-in through the e2e profile. -->
+          <excludedGroups>e2e</excludedGroups>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <excludedGroups>e2e</excludedGroups>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!--
+      End-to-end suite. Drives a running deployment over HTTP: correctness of writes,
+      propagation into every index, result parity between the read paths, and latency.
+
+        make e2e                                  against localhost:8080
+        mvn verify -Pe2e -De2e.baseUrl=https://…  against anything else
+    -->
+    <profile>
+      <id>e2e</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>true</skipTests>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <excludedGroups combine.self="override"/>
+              <groups>e2e</groups>
+              <includes>
+                <include>**/*E2eTest.java</include>
+              </includes>
+              <!-- One fork, so the shared run id and the report survive the whole suite. -->
+              <forkCount>1</forkCount>
+              <reuseForks>true</reuseForks>
+              <systemPropertyVariables>
+                <e2e.baseUrl>${e2e.baseUrl}</e2e.baseUrl>
+                <e2e.engines>${e2e.engines}</e2e.engines>
+                <e2e.iterations>${e2e.iterations}</e2e.iterations>
+                <e2e.warmup>${e2e.warmup}</e2e.warmup>
+                <e2e.propagationTimeoutSeconds>${e2e.propagationTimeoutSeconds}</e2e.propagationTimeoutSeconds>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <properties>
+        <e2e.baseUrl>http://localhost:8080</e2e.baseUrl>
+        <e2e.engines>MYSQL,OPENSEARCH,HIBERNATE_SEARCH</e2e.engines>
+        <e2e.iterations>20</e2e.iterations>
+        <e2e.warmup>5</e2e.warmup>
+        <e2e.propagationTimeoutSeconds>30</e2e.propagationTimeoutSeconds>
+      </properties>
+    </profile>
+  </profiles>
+</project>

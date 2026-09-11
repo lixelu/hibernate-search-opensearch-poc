@@ -1,0 +1,20 @@
+apiVersion: 1
+
+# Removes a previously provisioned copy first. Without this, changing the datasource
+# (adding the uid, say) makes Grafana fail to start with "data source not found",
+# because provisioning tries to update by a uid the existing record does not have.
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
+datasources:
+  - name: Prometheus
+    # Pinned because the dashboard JSON references it. Without an explicit uid Grafana
+    # assigns a random one and every panel renders "No data".
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 5s
