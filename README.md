@@ -36,6 +36,8 @@ step-by-step spec for applying this to a real service.
 | Hibernate Search mapping: derived fields with `@IndexingDependency` | `domain/Product.java` |
 | Hibernate Search query adapter and admin | `query/hibernatesearch/` |
 | Every gauge in one readable catalogue | `ops/CatalogMetrics.java` |
+| Fan-out control: where the cost lands, and the two ways to move it off the write path | `write/PagedFanOutService.java` |
+| Background indexing failures become a metric instead of a log line | `ops/IndexingFailureHandler.java` |
 
 ---
 

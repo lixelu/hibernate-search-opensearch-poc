@@ -699,7 +699,7 @@ not a gap that closes in the next version — it is simply not part of the libra
 never replaced.)
 
 Nothing in the library tells you its event processor is alive, how fast it is draining, or
-that it just expanded one event into three thousand.
+that one parent edit just turned into three thousand outbox rows.
 
 **Hibernate ORM statistics do see the event processor**, and are the only thing that does.
 Two steps, and the first one alone does nothing:
