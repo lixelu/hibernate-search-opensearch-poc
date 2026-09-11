@@ -8,6 +8,12 @@ roll back.
 
 Java 21 · Spring Boot 3.5 · MySQL 8.4 · OpenSearch 2.19 · Hibernate Search 7.2 · Docker Compose
 
+**[`docs/INDEPENDENT-REVIEW.md`](docs/INDEPENDENT-REVIEW.md)** is a second opinion
+commissioned after this was working, which rebuilt the strongest alternative — a
+denormalised MySQL read table — and benchmarked it against the index at 1x and 10x. Read it
+before adopting anything here. It found two real errors, both since fixed, and it argues
+that one of the two pipelines should be deleted.
+
 **Two indexing pipelines, one query interface.** A hand-rolled transactional outbox
 writing through the `opensearch-java` client, and Hibernate Search's `outbox-polling`
 coordination driven by entity annotations. Both index the same aggregate, both are
