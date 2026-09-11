@@ -51,7 +51,7 @@ These are hard constraints discovered by testing, not preferences.
 
 | Constraint | Consequence |
 |---|---|
-| **Hibernate Search ships no OpenSearch 3.x dialect.** Verified by inspecting 7.2.6 and 8.4.0: both contain only `OpenSearch1ModelDialect`, `OpenSearch2ModelDialect`, `OpenSearch29ModelDialect`, `OpenSearch214ModelDialect`. | **Choosing Hibernate Search pins you to OpenSearch 2.x.** Use 2.19.x, the final 2.x line. If you must run OpenSearch 3.x, use the `opensearch-java` client directly and hand-roll the pipeline. |
+| **Hibernate Search 7.2 rejects OpenSearch 3.x. 8.4 supports it.** The dialect *class* names are misleading and an earlier version of this document drew the wrong conclusion from them. What decides the range is `ElasticsearchDialectFactory`, and its bytecode is unambiguous: in 7.2.6 an OpenSearch major version of 3 or above falls through to `unsupportedElasticsearchVersion`, while 8.4.0 has a dedicated `createProtocolDialectOpenSearchV3` branch and reuses `OpenSearch214ModelDialect` for 3.x. | **On Hibernate Search 7.2 you are pinned to OpenSearch 2.x.** Use 2.19.x, the final 2.x line. The pin lifts on 8.4, but 8.4 needs Hibernate ORM 7, i.e. Spring Boot 4 — so this is a consequence of the Boot upgrade, not a separate decision. The hand-rolled `opensearch-java` pipeline has no such constraint. |
 | **Hibernate Search 8.x requires Hibernate ORM 7**, i.e. Spring Boot 4. | On Boot 3.5 use the **7.2.x** line (7.2.6.Final was verified against Boot 3.5.16 / ORM 6.6.53). |
 | The `opensearch-java` client 3.x works against a 2.19 cluster. | Verified: full result parity and unchanged latency. You may run both pipelines against one cluster. |
 

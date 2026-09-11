@@ -15,9 +15,10 @@ compared against the MySQL baseline on identical traffic, and both return identi
 results. [`docs/IMPLEMENTATION-SPEC.md`](docs/IMPLEMENTATION-SPEC.md) is the
 step-by-step spec for applying this to a real service.
 
-> OpenSearch is pinned to **2.19** because Hibernate Search ships no OpenSearch 3
-> dialect in any released version. That constraint is the first thing to know before
-> choosing it.
+> OpenSearch is pinned to **2.19** because Hibernate Search **7.2** rejects OpenSearch 3.
+> Version 8.4 supports it, but requires Hibernate ORM 7 and therefore Spring Boot 4, so
+> the pin lifts as part of that upgrade rather than on its own. The hand-rolled
+> `opensearch-java` pipeline is not constrained either way.
 
 ---
 

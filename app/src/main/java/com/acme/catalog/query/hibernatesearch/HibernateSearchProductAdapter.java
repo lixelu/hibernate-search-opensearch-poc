@@ -121,7 +121,14 @@ public class HibernateSearchProductAdapter implements ProductSearchPort {
                 .fetch(from, query.size());
 
         long tookMillis = (System.nanoTime() - startedAt) / 1_000_000;
-        return new SearchSlice(result.hits(), result.total().hitCount(), false, engine(), tookMillis);
+        // Ask the result whether its count is exact rather than asserting it. hitCount()
+        // throws when the count is only a lower bound, so hardcoding false here would turn
+        // a capped count into an exception instead of a wrong number -- survivable, but it
+        // reads as a guarantee this adapter cannot make on its own.
+        var total = result.total();
+        boolean lowerBound = !total.isHitCountExact();
+        long hits = lowerBound ? total.hitCountLowerBound() : total.hitCount();
+        return new SearchSlice(result.hits(), hits, lowerBound, engine(), tookMillis);
     }
 
     private static boolean hasText(String value) {

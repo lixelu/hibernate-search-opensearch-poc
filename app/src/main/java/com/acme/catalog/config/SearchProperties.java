@@ -64,7 +64,7 @@ public record SearchProperties(
              * own hit distributions before assuming it is too expensive -- MySQL was
              * paying for an exact COUNT(*) over the joins on every request anyway.
              */
-            @DefaultValue("false") boolean exactTotalHits,
+            @DefaultValue("true") boolean exactTotalHits,
             @DefaultValue("1000") int connectTimeoutMillis,
             @DefaultValue("2000") int socketTimeoutMillis,
             @DefaultValue("true") boolean bootstrapIndex) {
